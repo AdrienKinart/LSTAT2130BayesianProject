@@ -1,0 +1,21 @@
+---
+title: "LSTAT2130BayesianProject"
+author: "Adrien Kinart"
+date: "5/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+
+```{r cars}
+summary(cars)
+```
+
+# First analyses
+
+
