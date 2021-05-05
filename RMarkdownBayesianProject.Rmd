@@ -84,22 +84,21 @@ P(x_{j_1} < x < x_{j_2}) =\int_{x_{j_1}}^{x_{j_2}} \frac{1}{\Gamma(\phi_k^{-1})}
 
 ## (b) Theoretical expression for the likelihood
 
-
-We have, writing $P:=(p_{k,1},..,p_{k,10})$
+We have, writing $P:=(p_{k,1},..,p_{k,10})$ and $X_k:= (x_{k,1},... x_{k,10})$
 $$
 \begin{split}
-X_k |P  \sim \text{Mul}(n_k,P) 
+X_k |P  \sim \text{Mul}(n_k,P)  & = \frac{x_k!}{x_{k,1}! \, ... \, x_{k,10}! } p_1^{n_{x,1}} \times ... \times p_1^{x_{k,10}} \; \text{when} \sum_{j=1}^{10} x_j = x_k \\
+&=0 \; \text{otherwise}
 \end{split}
 $$
 
-
+$$
 \begin{equation}
 \begin{split}
-L(\theta_k, D_k) = P (D_k | \theta_k) \propto 
+L(\theta_k, D_k) = P (D_k | \theta_k) = \pi_{}
 \end{split}
 \end{equation}
-
-
+$$
 
 
 

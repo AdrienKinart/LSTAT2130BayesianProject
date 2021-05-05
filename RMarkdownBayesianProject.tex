@@ -1,0 +1,221 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={LSTAT2130BayesianProject},
+  pdfauthor={Adrien Kinart},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+
+\title{LSTAT2130BayesianProject}
+\author{Adrien Kinart}
+\date{5/5/2021}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(kableExtra)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Table <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=} \KeywordTok{c}\NormalTok{(}\DecValTok{25}\NormalTok{,}\DecValTok{69}\NormalTok{, }\DecValTok{65}\NormalTok{,}\DecValTok{106}\NormalTok{, }\DecValTok{80}\NormalTok{,}\DecValTok{106}\NormalTok{,}\DecValTok{136}\NormalTok{,}\DecValTok{94}\NormalTok{,}\DecValTok{76}\NormalTok{,}\DecValTok{46}\NormalTok{,}
+                       \DecValTok{17}\NormalTok{,}\DecValTok{36}\NormalTok{, }\DecValTok{47}\NormalTok{,}\DecValTok{58}\NormalTok{ , }\DecValTok{47}\NormalTok{,}\DecValTok{53}\NormalTok{ ,}\DecValTok{59}\NormalTok{ ,}\DecValTok{54}\NormalTok{,}\DecValTok{33}\NormalTok{,}\DecValTok{21}\NormalTok{),}
+                \DataTypeTok{nrow =} \DecValTok{2}\NormalTok{, }\DataTypeTok{byrow =}\NormalTok{ T)}
+\KeywordTok{rownames}\NormalTok{(Table) <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"Flanders"}\NormalTok{, }\StringTok{"Wallonia"}\NormalTok{) }
+\KeywordTok{colnames}\NormalTok{(Table) <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"<1200"}\NormalTok{, }\StringTok{"[1200-1500)"}\NormalTok{, }\StringTok{"1500-1800"}\NormalTok{, }\StringTok{"1800-2300"}\NormalTok{, }\StringTok{"2300-2700"}\NormalTok{,}
+                     \StringTok{"2700-3300"}\NormalTok{, }\StringTok{"3300-4000"}\NormalTok{, }\StringTok{"4000-4900"}\NormalTok{, }\StringTok{"4900-6000"}\NormalTok{, }\StringTok{">6000"}\NormalTok{)}
+
+\NormalTok{NbFlemish <-}\StringTok{  }\KeywordTok{sum}\NormalTok{(Table[}\DecValTok{1}\NormalTok{,])}
+\NormalTok{NbWaWalloons <-}\KeywordTok{sum}\NormalTok{(Table[}\DecValTok{2}\NormalTok{,])  }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kappaFct <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(phi)\{}\DecValTok{1}\OperatorTok{/}\NormalTok{phi\}}
+\NormalTok{lambdaFct <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(phi,mu)\{}\DecValTok{1}\OperatorTok{/}\NormalTok{(phi}\OperatorTok{*}\NormalTok{mu)\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.05892352
+\end{verbatim}
+
+\hypertarget{question-1}{%
+\section{Question 1}\label{question-1}}
+
+Let \(\theta_k:= (\mu_k, \phi_k)\) be the set of parameters for a HNI
+with respect to region \(k\).
+
+\hypertarget{a-theoretical-probability}{%
+\subsection{(a) Theoretical
+probability}\label{a-theoretical-probability}}
+
+Let \(X\) be the monthly net income of 1123 Belgian households net
+income (HNI) older than 30 years. Regardless the 2 regions
+(\(k=\{1,2\}\) wrt Flanders and Wallonnia, respectively), is assumed it
+follows a Gamma distribution. It can be reparametrised in terms of its
+mean \(\mu\) and dispersion parameter \(\phi\) with the following trick:
+
+\begin{equation}
+\begin{split}
+\kappa & = \frac{1}{\phi} \\
+\lambda & = \frac{1}{\phi\; \mu}
+\end{split}
+\end{equation}
+
+For both regions \(k=\{1,2\}\): This gives
+
+\begin{equation}
+\begin{split}
+f(x_k) = \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+\end{split}
+\end{equation}
+
+Then, the probability to fall into a certain HNI interval is:
+
+\begin{equation}
+\begin{split}
+P(x_{j_1} < x < x_{j_2}) =\int_{x_{j_1}}^{x_{j_2}} \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+\end{split}
+\end{equation}
+
+\hypertarget{b-theoretical-expression-for-the-likelihood}{%
+\subsection{(b) Theoretical expression for the
+likelihood}\label{b-theoretical-expression-for-the-likelihood}}
+
+We have, writing \(P:=(p_{k,1},..,p_{k,10})\) and
+\(X_k:= (x_{k,1},... x_{k,10})\) \[
+\begin{split}
+X_k |P  \sim \text{Mul}(n_k,P)  & = \frac{x_k!}{x_{k,1}! \, ... \, x_{k,10}! } p_1^{n_{x,1}} \times ... \times p_1^{x_{k,10}} \; \text{when} \sum_{j=1}^{10} x_j = x_k \\
+&=0 \; \text{otherwise}
+\end{split}
+\]
+
+\[
+\begin{equation}
+\begin{split}
+L(\theta_k, D_k) = P (D_k | \theta_k) = \pi_{}
+\end{split}
+\end{equation}
+\]
+
+\end{document}
