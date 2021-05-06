@@ -10,7 +10,7 @@ toc_depth: 2
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
+Un changement pour voir si j'arrive à commit push, au calme
 ```{r NeededLibrarys}
 library(kableExtra)
 ```
@@ -47,7 +47,7 @@ pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
 ```
 
 # Question 1
-Let $\theta_k:= (\mu_k, \phi_k)$ be the set of parameters for a HNI with respect to region $k$. 
+Let $\theta_k:= (\mu_k, \phi_k)$ be the set of parameters for a HNI with respect to region $k$.
 
 ## (a) Theoretical probability
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.10.8)  5 MAY 2021 14:21
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.11.18)  6 MAY 2021 10:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -663,7 +663,7 @@ l.214 \begin{equation}
                        
 Here is how much of TeX's memory you used:
  14835 strings out of 480608
- 217061 string characters out of 5903630
+ 217061 string characters out of 5903629
  518959 words of memory out of 5000000
  30409 multiletter control sequences out of 15000+600000
  582277 words of font info for 77 fonts, out of 8000000 for 9000
