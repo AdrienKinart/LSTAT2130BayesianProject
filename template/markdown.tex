@@ -1,0 +1,184 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage{template/sleek-settings}
+
+% DEFAULT MARDKOWN SETUP
+
+\RequirePackage[
+unicode=true,
+breaklinks=true,
+pdfusetitle,
+linktoc=page,
+linkbordercolor=blue,
+$if(colorlinks)$
+    colorlinks=true,
+    linkcolor=$if(linkcolor)$$linkcolor$$else$black$endif$,
+    citecolor=$if(citecolor)$$citecolor$$else$blue$endif$,
+    urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
+$else$
+    $if(bordercolorlinks)$
+        linkbordercolor=$if(linkbordercolor)$$linkbordercolor$$else$black$endif$,
+        citebordercolor=$if(citebordercolor)$$citebordercolor$$else$black$endif$,
+        urlbordercolor=$if(urlbordercolor)$$urlbordercolor$$else$black$endif$,
+        pdfborder={.5 .5 .5}
+    $else$
+        pdfborder={0 0 0},
+    $endif$
+$endif$
+]{hyperref}
+
+$if(highlighting-macros)$
+
+% Highlighting customized
+
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{xleftmargin=1em,commandchars=\\\{\}, fontsize=\small, numberblanklines=false,numbersep=.5em}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+% 
+$endif$
+
+$if(verbatim-in-note)$
+\usepackage{fancyvrb}
+\VerbatimFootnotes % allows verbatim text in footnotes
+$endif$
+
+$if(tables)$
+\usepackage{longtable,booktabs}
+$endif$
+
+$if(graphics)$
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+$endif$
+
+$if(links-as-notes)$
+% Make links footnotes instead of hotlinks:
+\renewcommand{\href}[2]{#2\footnote{\url{#1}}}
+$endif$
+
+$if(strikeout)$
+\usepackage[normalem]{ulem}
+% avoid problems with \sout in headers with hyperref:
+\pdfstringdefDisableCommands{\renewcommand{\sout}{}}
+$endif$
+
+$for(header-includes)$
+$header-includes$
+$endfor$
+
+\urlstyle{same}
+
+% END OF DEFAULT MARKDOWN SETUP
+% DYNAMIC VARIABLES
+
+$if(title)$
+\title{$title$}
+$else$
+\title{Rmarkdown document}
+$endif$
+
+$if(subtitle)$
+\subtitle{$subtitle$}
+$else$
+\subtitle{Custom template}
+$endif$
+
+$if(authors)$
+\author{$for(authors)$ \textsc{$authors$}\\ $endfor$}
+$endif$
+
+$if(logo)$
+\logo{logo}
+$else$
+\logo{resources/img/UCLouvain_Logo_Sciences.jpg}
+$endif$
+
+$if(institute)$
+\institute{$institute$}
+$else$
+\institute{Université catholique de Louvain}
+$endif$
+
+$if(faculty)$
+\faculty{$faculty$}
+$else$
+\faculty{Louvain School of Statistics}
+$endif$
+
+$if(department)$
+\department{$department$}
+$endif$
+
+$if(context)$
+\context{$context$}
+$endif$
+
+$if(date)$
+\date{$date$}
+$else$
+\date{\today}
+$endif$
+
+$if(toc-depth)$
+\setcounter{tocdepth}{$toc-depth$}
+$endif$
+
+% END OF DYNAMIC VARIABLES
+
+\begin{document}
+
+    \maketitle
+    $if(toc)$\tableofcontents$endif$
+    \newpage
+    
+    $for(include-before)$
+        $include-before$
+    $endfor$
+    
+    
+    $body$
+
+
+\end{document}

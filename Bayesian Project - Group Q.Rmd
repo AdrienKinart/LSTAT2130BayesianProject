@@ -1,21 +1,72 @@
 ---
-title: "LSTAT2130BayesianProject"
-author: "Adrien Kinart"
-date: "5/5/2021"
-output: pdf_document
-toc: true
-toc_depth: 2
+# Document information
+
+title: "LSTAT2130 - Bayesian Statistics"
+subtitle: "Project - Group Q"
+
+authors:
+  - "Lionel Lamy - 1294-1700"
+  - "Adrien Kinart"
+  - "Simon Lengendre"
+
+# If multiple authors: - "Lionel Lamy - 1294-1700" is prettier.
+
+# ---
+# You can remove settings below
+# Defaults values are defined
+
+# logo: ""
+
+institute: "Université catholique de Louvain"
+faculty: "Louvain School of Statistics"
+# department: ""
+
+context: ""
+date: \today
+
+# ---
+colorlinks: false
+bordercolorlinks: true
+
+linkcolor: "black"
+citecolor: "blue"
+urlcolor:  "blue"
+
+linkbordercolor: "black"
+urlbordercolor: "blue"
+citebordercolor: "blue"
+
+links-as-notes: false
+# ---
+# header-includes: 
+#   -
+output:
+  pdf_document:
+    template: template/markdown.tex
+    toc: true
+    toc_depth: 3
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  cache = TRUE,
+  echo = F,
+  eval = T,	
+  	
+  warning = F,	
+  message = F,
+  
+  	
+  out.width= "80%",
+  fig.align = "center",	
+  fig.path = "resources/figs/",
+  
+  tidy=TRUE,
+  tidy.opts=list(width.cutoff=70)
+)	
 ```
 
-```{r NeededLibrarys}
-library(kableExtra)
-```
-
-# Introduction 
+# Introduction
 ```{r}
 Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
                        17,36, 47,58 , 47,53 ,59 ,54,33,21),
@@ -97,3 +148,23 @@ $$
 L(\theta_k, D_k) = P (D_k | \theta_k) = \pi_{}
 \end{split}
 $$
+<!------>
+\appendix
+
+# Appendix{#appendix}
+## Figures{#figures}
+## Code{#code}
+
+\bigskip
+\begin{mdframed}[style=thicc, frametitle=Note, frametitlebackgroundcolor=black!30]
+  For reproducibility purposes, the complete R project containing the source code and the results is available on https://github.com/.
+\end{mdframed}
+
+
+```{r appendix_pre}
+# remotes::install_github('yihui/formatR')
+library(formatR)
+```
+
+```{r appendix_code, eval=FALSE, echo=TRUE, ref.label=knitr::all_labels(appendix==T)}
+```
