@@ -70,6 +70,10 @@ knitr::opts_chunk$set(
 
 
 ```{r}
+library(EnvStats)
+```
+
+```{r}
 Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
                        17,36, 47,58 , 47,53 ,59 ,54,33,21),
                 nrow = 2, byrow = T)
@@ -89,14 +93,45 @@ kappaFct <- function(phi){1/phi}
 lambdaFct <- function(phi,mu){1/(phi*mu)}
 ```
 
+```{r}
+# Flanders
+Fl <- c(rep(1200,25), rep(1350,69), rep((1500+1800)/12,65), rep((1800+2300)/2,106),rep((2300+2700)/2,80), rep(3000,106),
+        rep((3300+4000)/2,136), rep(4450,94),rep((4900+6000)/2,76), rep(6000,46))
+
+Estimation_Fl <-  egamma(Fl)
+Estimated_kappa_Fl <- Estimation_Fl$parameters["shape"]
+Estimated_lambda_Fl <- 1/Estimation_Fl$parameters["scale"]
+Estimated_mu_Fl <- Estimated_kappa_Fl/Estimated_lambda_Fl
+Estimated_mu_Fl
+estimGamma_Fl <- rgamma(10000,Estimated_kappa_Fl,Estimated_lambda_Fl)
+hist(Fl, probability = T, xlim = c(-500,8000))
+curve(dgamma(x,Estimated_kappa_Fl,Estimated_lambda_Fl), add = TRUE)
+
+# Wallonnia
+Wall <- c(rep(1200,17), rep(1350,36), rep((1500+1800)/12,47), rep((1800+2300)/2,58),rep((2300+2700)/2,47), rep(3000,53),
+        rep((3300+4000)/2,59), rep(4450,54),rep((4900+6000)/2,33), rep(6000,21))
 
 
-```{r JustAnExample, echo=FALSE}
+Estimation_Wall <-  egamma(Wall)
+Estimated_kappa_Wal <- Estimation_Wall$parameters["shape"]
+Estimated_lambda_Wal <- 1/Estimation_Wall$parameters["scale"]
+Estimated_mu_Wal <- Estimated_kappa_Wal/Estimated_lambda_Wal
+Estimated_mu_Wal
+estimGamma_Wal <- rgamma(10000,Estimated_kappa_Wal,Estimated_lambda_Wal)
+hist(Wall, probability = T, xlim = c(-500,8000))
+curve(dgamma(x,Estimated_kappa_Wal,Estimated_lambda_Wal), add = TRUE)
+
+```
+
+
+
+```{r JustAnExample, echo=FALSE, include=FALSE}
 muExample <- 2500; phiExample <- 1
 kappaExample <- kappaFct(phiExample)
 lambdaExample <- lambdaFct(muExample,phiExample)
 
 pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
+dgamma(2700, kappaExample, lambdaExample)
 ```
 
 # Question 1
@@ -109,8 +144,8 @@ Let $X$ be the monthly net income of 1123 Belgian households net income (HNI) ol
 
 $$
 \begin{split}
-\kappa & = \frac{1}{\phi} \\
-\lambda & = \frac{1}{\phi\; \mu}
+\text{shape: } \kappa & = \frac{1}{\phi} \\
+\text{rate: } \lambda & = \frac{1}{\phi\; \mu}
 \end{split}
 $$
 
@@ -120,7 +155,7 @@ For both regions $k=\{1,2\}$: This gives
 
 $$
 \begin{split}
-f(x_k) = \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+f(x_k) = \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})} 
 \end{split}
 $$
 
@@ -129,27 +164,88 @@ Then, the probability to fall into a certain HNI interval is:
 
 $$
 \begin{split}
-P(x_{j_1} < x < x_{j_2}) =\int_{x_{j_1}}^{x_{j_2}} \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+P(x_{k,j} < x_k < x_{k,j+1}) =\int_{x_{j}}^{x_{j+1}} \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
 \end{split}
 $$
 
 
 
 ## (b) Theoretical expression for the likelihood
+On behalf of writing simplicity, the region index is removed. Since the frequency distribution in a given region is multinomial, i.e. 
 
-We have, writing $P:=(p_{k,1},..,p_{k,10})$ and $X_k:= (x_{k,1},... x_{k,10})$
+We have, writing $P:=(p{1},..,p_{10})$ and $X:= (X_{1},... X_{10})$:
 $$
 \begin{split}
-X_k |P  \sim \text{Mul}(n_k,P)  & = \frac{x_k!}{x_{k,1}! \, ... \, x_{k,10}! } p_1^{n_{x,1}} \times ... \times p_1^{x_{k,10}} \; \text{when} \sum_{j=1}^{10} x_j = x_k \\
+X | P  \sim \text{Mul}(N,P)  & = \frac{x!}{x_{1}! \, ... \, x_{10}! } p_1^{x_1} \times ... \times p_{10}^{x_{10}} \; \text{when} \sum_{j=1}^{10} p_j = 1 \\
 &=0 \; \text{otherwise}
 \end{split}
 $$
 
+Up to a multiplicative constant, the likelihood can be written as follow:
+
 $$
 \begin{split}
-L(\theta_k, D_k) = P (D_k | \theta_k) = \pi_{}
+L(\theta, D) = P (D | \mu, \phi) \propto \prod_{j=1}^{10} p_j
 \end{split}
 $$
+$p_j$ corresponds to the area in the $j^{\text{th}}$ interval. One can take the approximation mean the mean,e.g. $x_{Flanders,3} = (1500+1800)/2 = 1650 $? On can approximate that with $f(x_i) \Delta$ where $\Delta$ is the unit of measurement. 
+
+$$
+\begin{split}
+p_j =P(x_j - \frac{\Delta_j}{2} < x_j <x_j + \frac{\Delta_j}{2} ) & \approx f(x_j) \Delta_j \\
+& \approx \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j
+\end{split}
+$$
+This gives for the likelihood: 
+
+$$
+\begin{split}
+P (D | \mu, \phi) & \propto \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j \\
+& \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \\
+\end{split}
+$$
+
+
+
+# Question 2 : Priors 
+
+- Statement 1: we are at 95% convinced that the mean net monthly household income in a given region is in the interval (2400, 3600). If one assumes a normal distribution for the mean $\mu_k$ (à justifier), then it is possible to get a prior of the distriubtion for both regions: 
+
+For both regions $ \bar{x} = 3000$. Then, to get the standard deviation: 
+
+$$
+\begin{split}
+& 3000 - t_{(n_k-1, 1-\alpha/2)} \frac{s_k}{\sqrt{n_k}} = 2400 \\
+\rightarrow  & \hat{\sigma} = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}}
+\end{split}
+$$
+
+
+$ \hat{\sigma}_{Fl} = 306 $
+
+So we have 
+
+$$
+\bar{x}_k \sim N(\mu= 3000, \sigma =306) \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma}(x_k-\mu)^2\big) }
+$$
+
+
+- dispersion parameter: 
+
+If one considers that the parameter can be in any point within the interval (0.0, 10.0) with the same probability, then one could say that it follows a uniform distribution between those to interval 
+
+$$
+\phi_k \sim U (a=0,b=10) \propto 1_{0,10}
+$$
+
+Using the entropy theorem, the conjugate prior would be the product of the two last quantity: 
+
+
+$$
+\text{prior:}  P(\mu_k, \phi_k) = P(\mu_k) (\phi_k)  \propto 
+$$
+
+
 <!------>
 \appendix
 
