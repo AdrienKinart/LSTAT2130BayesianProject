@@ -3,6 +3,9 @@
 
 % DEFAULT MARDKOWN SETUP
 
+% TIGHTLIST UPDATE
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
 \RequirePackage[
 unicode=true,
 breaklinks=true,
@@ -130,9 +133,9 @@ $if(authors)$
 $endif$
 
 $if(logo)$
-\logo{logo}
+\logo{$logo$}
 $else$
-\logo{resources/img/UCLouvain_Logo_Sciences.jpg}
+\logo{resources/img/UCLouvainLogoSciences.jpg}
 $endif$
 
 $if(institute)$
