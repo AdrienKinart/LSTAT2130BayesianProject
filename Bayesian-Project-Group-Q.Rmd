@@ -153,18 +153,14 @@ For both regions $k=\{1,2\}$: This gives
 
 
 $$
-\begin{split}
-f(x_k) = \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})} 
-\end{split}
+f(x_k) = \frac{(\phi_k\mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} \
+x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}
 $$
-
 
 Then, the probability to fall into a certain HNI interval is: 
 
 $$
-\begin{split}
-P(x_{k,j} < x_k < x_{k,j+1}) =\int_{x_{j}}^{x_{j+1}} \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
-\end{split}
+P(x_{k,j} < x_k < x_{k,j+1}) =\int_{x_{j}}^{x_{j+1}} \frac{(\phi_k \mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}\ \diff{x}
 $$
 
 
