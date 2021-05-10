@@ -189,7 +189,7 @@ $p_j$ corresponds to the area in the $j^{\text{th}}$ interval. One can take the 
 $$
 \begin{split}
 p_j =P(x_j - \frac{\Delta_j}{2} < x_j <x_j + \frac{\Delta_j}{2} ) & \approx f(x_j) \Delta_j \\
-& \approx \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j
+& \approx \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{-1/\phi_k} x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j
 \end{split}
 $$
 This gives for the likelihood: 
@@ -222,7 +222,7 @@ $\hat{\sigma}_{Fl} = 306$
 So we have 
 
 $$
-\bar{x}_k \sim N(\mu= 3000, \sigma =306) \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma}(x_k-\mu)^2\big) }
+\bar{x}_k \sim N(\mu= 3000, \sigma =306) \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) }
 $$
 
 
