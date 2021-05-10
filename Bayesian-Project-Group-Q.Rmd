@@ -164,6 +164,21 @@ P(x_{k,j} < x_k < x_{k,j+1}) =\int_{x_{j}}^{x_{j+1}} \frac{(\phi_k \mu_k)^{-1/\p
 $$
 
 
+Using CDF writing: 
+
+$$
+\begin{equation}
+\begin{split}
+p_j & = F(x_{j+1}, \kappa, \lambda) - F(x_{j}, \kappa, \lambda) \\
+& = \frac{1}{\Gamma(\kappa)} \Big ( \gamma(\kappa, \lambda x_{j+1}) -\gamma(\kappa, \lambda x_{j}) \Big) \\
+& = \sum^{\kappa-1}_{i=0} \frac{\lambda x_j}{i !} \exp{(- \lambda x_j)} - \sum^{\kappa-1}_{i=0} \frac{\lambda x_{j+1}}{i !} \exp{(- \lambda x_{j+1})} \\
+&=\lambda \exp{(-\lambda)}  \sum^{\kappa-1}_{i=0} \Bigg( \frac{x_j}{i!} \exp{(-x_j)} + \frac{x_{j+1}}{i!} \exp{(-x_{j+1})} \Bigg)
+
+\end{split}
+\end{equation}
+$$ 
+
+
 
 ## (b) Theoretical expression for the likelihood
 On behalf of writing simplicity, the region index is removed. Since the frequency distribution in a given region is multinomial, i.e. 
@@ -238,8 +253,30 @@ Using the entropy theorem, the conjugate prior would be the product of the two l
 
 
 $$
-\text{prior:}  P(\mu_k, \phi_k) = P(\mu_k) (\phi_k)  \propto 
+\begin{equation}
+\begin{split} 
+\text{prior:}  P(\mu_k, \phi_k) & = P(\mu_k) \ P(\phi_k) \\
+& \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0;10}
+\end{split}
+\end{equation}
 $$
+# Question 3
+
+## Question 3a: posterior
+
+$\sigma^2 = \phi \mu^2$
+
+$$
+\begin{equation}
+\begin{split}
+P(\mu, \phi | D) & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\ 
+& \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j (\frac{1}{\sqrt{\phi} \mu}) \exp{ \big(-\frac{1}{2 \phi \mu^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\
+\end{split}
+\end{equation}
+$$
+
+
+
 
 
 <!------>
