@@ -79,6 +79,7 @@ Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
 rownames(Table) <- c("Flanders", "Wallonia") 
 colnames(Table) <- c("<1200", "[1200-1500)", "1500-1800", "1800-2300", "2300-2700",
                      "2700-3300", "3300-4000", "4000-4900", "4900-6000", ">6000")
+Intervals <- c(1200,1500,1800, 2300,2700,3300,4000,4900,6000)
 
 NbFlemish <-  sum(Table[1,])
 NbWaWalloons <-sum(Table[2,])  
@@ -102,6 +103,9 @@ Estimated_kappa_Fl <- Estimation_Fl$parameters["shape"]
 Estimated_lambda_Fl <- 1/Estimation_Fl$parameters["scale"]
 Estimated_mu_Fl <- Estimated_kappa_Fl/Estimated_lambda_Fl
 Estimated_mu_Fl
+Estimated_phi_Fl <- 1/Estimated_kappa_Fl
+Estimated_phi_Fl
+
 estimGamma_Fl <- rgamma(10000,Estimated_kappa_Fl,Estimated_lambda_Fl)
 hist(Fl, probability = T, xlim = c(-500,8000))
 curve(dgamma(x,Estimated_kappa_Fl,Estimated_lambda_Fl), add = TRUE)
@@ -116,6 +120,8 @@ Estimated_kappa_Wal <- Estimation_Wall$parameters["shape"]
 Estimated_lambda_Wal <- 1/Estimation_Wall$parameters["scale"]
 Estimated_mu_Wal <- Estimated_kappa_Wal/Estimated_lambda_Wal
 Estimated_mu_Wal
+Estimated_phi_Wal <- 1/Estimated_kappa_Wal
+Estimated_phi_Wal
 estimGamma_Wal <- rgamma(10000,Estimated_kappa_Wal,Estimated_lambda_Wal)
 hist(Wall, probability = T, xlim = c(-500,8000))
 curve(dgamma(x,Estimated_kappa_Wal,Estimated_lambda_Wal), add = TRUE)
@@ -339,6 +345,43 @@ P(\mu_k, \phi_k | D) \propto \Bigg( \prod_{j=1}^{10} \Bigg( \int\limits_{ \frac{
 \end{split}
 \end{equation}
 $$
+
+## 3.b 
+
+the log likelihood is:
+$$
+\begin{split}
+LL & \propto \sum_{j=1}^{10} x_j \ln{\Bigg( \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)}
+\end{split}
+$$
+
+```{r}
+lpost <- function(theta,freq){
+  Intervals <- c(1200,1500,1800, 2300,2700,3300,4000,4900,6000) # length =9 
+  mu <- theta[1]
+  phi <- theta[2]
+  kappa <- 1/phi
+  lambda <- 1/(phi*mu)
+  n <- length(Intervals)
+
+  #initialisation: j=1 ==>  x_1 * proba(0,x_1) 
+  LL <- freq[1]* log(pgamma(Intervals[1], kappa, lambda))
+  
+  for (i in 2:(n-1)) {
+    LL <- LL + freq[i] *log(pgamma(Intervals[i+1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))
+  }
+  ## de x_n  à +infinity (=> 6000 --> inf )
+  LL <-  LL+ freq[n]* log(1-pgamma(Intervals[n], kappa, lambda))
+  return(LL)
+}
+```
+
+```{r}
+lpost(c(Estimated_mu_Fl, Estimated_phi_Fl), t(Table[1,]))
+lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
+```
+
+
 
 
 <!------>
