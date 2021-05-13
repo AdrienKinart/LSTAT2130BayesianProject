@@ -293,9 +293,12 @@ $$
 $\hat{\sigma}_{Fl} = 306$
 
 So we have 
+$$\mu \sim N(\mu_0= 3000, \sigma_0 =306)$$
 
 $$
-\mu \sim N(\mu_0= 3000, \sigma_0 =306) \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) }
+\begin{split}
+ \pi(\mu) \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) }
+\end{split}
 $$
 
 
@@ -382,7 +385,25 @@ lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
 ```
 
 
+# 4. 
 
+
+$$
+h(\mu,\phi) \propto  l(\mu,\phi) + \ln(\pi(\mu,\phi))
+$$
+
+$$
+h(\mu,\phi) = Ct + \sum_j x_j \ln{\big(F(\mu,\phi,x_{j+1})-F(\mu,\phi,x_{j})  \big)} - \frac{1}{2 \sigma_0^2} (\mu-\mu_0)^2
+$$
+
+... 
+pour le moment... (voir photo envoyée sur messenger)
+$$
+\begin{split}
+\mu^* & =  \mu_0 + \sigma_0^2 (\sum^{10}x_j \frac{f_{j+1} - f_{j}}{ F_{j+1} -F{j}} ) \\
+\sigma^{2*} &= \sigma_0^2 
+\end{split}
+$$
 
 <!------>
 \appendix
