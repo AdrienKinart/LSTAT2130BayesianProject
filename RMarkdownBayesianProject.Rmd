@@ -1,0 +1,99 @@
+---
+title: "LSTAT2130BayesianProject"
+author: "Adrien Kinart"
+date: "5/5/2021"
+output: pdf_document
+toc: true
+toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r NeededLibrarys}
+library(kableExtra)
+```
+
+# Introduction 
+```{r}
+Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
+                       17,36, 47,58 , 47,53 ,59 ,54,33,21),
+                nrow = 2, byrow = T)
+rownames(Table) <- c("Flanders", "Wallonia") 
+colnames(Table) <- c("<1200", "[1200-1500)", "1500-1800", "1800-2300", "2300-2700",
+                     "2700-3300", "3300-4000", "4000-4900", "4900-6000", ">6000")
+
+NbFlemish <-  sum(Table[1,])
+NbWaWalloons <-sum(Table[2,])  
+```
+
+
+
+
+```{r}
+kappaFct <- function(phi){1/phi}
+lambdaFct <- function(phi,mu){1/(phi*mu)}
+```
+
+
+
+```{r JustAnExample, echo=FALSE}
+muExample <- 2500; phiExample <- 1
+kappaExample <- kappaFct(phiExample)
+lambdaExample <- lambdaFct(muExample,phiExample)
+
+pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
+```
+
+# Question 1
+Let $\theta_k:= (\mu_k, \phi_k)$ be the set of parameters for a HNI with respect to region $k$.
+
+## (a) Theoretical probability
+
+Let $X$ be the monthly net income of 1123 Belgian households net income (HNI) older than 30 years. Regardless the 2 regions ($k=\{1,2\}$ wrt Flanders and Wallonnia, respectively), is assumed it follows a Gamma distribution. It can be reparametrised in terms of its mean $\mu$ and dispersion parameter $\phi$ with the following trick: 
+
+
+$$
+\begin{split}
+\kappa & = \frac{1}{\phi} \\
+\lambda & = \frac{1}{\phi\; \mu}
+\end{split}
+$$
+
+
+For both regions $k=\{1,2\}$: This gives
+
+
+$$
+\begin{split}
+f(x_k) = \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+\end{split}
+$$
+
+
+Then, the probability to fall into a certain HNI interval is: 
+
+$$
+\begin{split}
+P(x_{j_1} < x < x_{j_2}) =\int_{x_{j_1}}^{x_{j_2}} \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{\phi_k} x_k^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_k}{\phi_k \mu})}
+\end{split}
+$$
+
+
+
+## (b) Theoretical expression for the likelihood
+
+We have, writing $P:=(p_{k,1},..,p_{k,10})$ and $X_k:= (x_{k,1},... x_{k,10})$
+$$
+\begin{split}
+X_k |P  \sim \text{Mul}(n_k,P)  & = \frac{x_k!}{x_{k,1}! \, ... \, x_{k,10}! } p_1^{n_{x,1}} \times ... \times p_1^{x_{k,10}} \; \text{when} \sum_{j=1}^{10} x_j = x_k \\
+&=0 \; \text{otherwise}
+\end{split}
+$$
+
+$$
+\begin{split}
+L(\theta_k, D_k) = P (D_k | \theta_k) = \pi_{}
+\end{split}
+$$

@@ -157,10 +157,10 @@ f(x_k) = \frac{(\phi_k\mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} \
 x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}
 $$
 
-Then, the probability to fall into a certain HNI interval is: 
+Then, the probability to fall into a certain HNI interval $I$ is: 
 
 $$
-P(x_{k,j} < x_k < x_{k,j+1}) =\int_{x_{j}}^{x_{j+1}} \frac{(\phi_k \mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}\ \diff{x}
+P( x_k \in I) =\int_I \frac{(\phi_k \mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}\ \diff{x}
 $$
 
 
@@ -168,15 +168,37 @@ Using CDF writing:
 
 $$
 \begin{equation}
-\begin{split}
-p_j & = F(x_{j+1}, \kappa, \lambda) - F(x_{j}, \kappa, \lambda) \\
-& = \frac{1}{\Gamma(\kappa)} \Big ( \gamma(\kappa, \lambda x_{j+1}) -\gamma(\kappa, \lambda x_{j}) \Big) \\
-& = \sum^{\kappa-1}_{i=0} \frac{\lambda x_j}{i !} \exp{(- \lambda x_j)} - \sum^{\kappa-1}_{i=0} \frac{\lambda x_{j+1}}{i !} \exp{(- \lambda x_{j+1})} \\
-&=\lambda \exp{(-\lambda)}  \sum^{\kappa-1}_{i=0} \Bigg( \frac{x_j}{i!} \exp{(-x_j)} + \frac{x_{j+1}}{i!} \exp{(-x_{j+1})} \Bigg)
-
-\end{split}
+p_j =
+\begin{cases}
+ F(x_{j}, \kappa, \lambda) \ \text{if j =1}\\
+ F(x_{j+1}, \kappa, \lambda) - F(x_{j}, \kappa, \lambda) \ \text{if} j \in \{2,..9\}\\
+ 1 - F(x_{j}, \kappa, \lambda) \ \text{if j =10}\\
+\end{cases}
 \end{equation}
-$$ 
+$$
+$$
+\begin{equation}
+p_j =
+\begin{cases}
+ \frac{1}{\Gamma(\kappa)} \int^{\lambda x_j}_0 t^{\kappa-1} e^{-t} \diff{t}   \ \text{if j =1}\\
+  \frac{1}{\Gamma(\kappa)} \int^{\lambda x_{j+1}}_{ \lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if} j \in \{2,..9\}\\
+ \frac{1}{\Gamma(\kappa)} \int^{+ \infty}_{\lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if j =10}\\
+\end{cases}
+\end{equation}
+$$
+
+
+$$
+\begin{equation}
+p_j =
+\begin{cases}
+ \frac{1}{\Gamma(\kappa)} \int^{\lambda x_j}_0 t^{\kappa-1} e^{-t} \diff{t}   \ \text{if j =1}\\
+  \frac{1}{\Gamma(\kappa)} \int^{\lambda x_{j+1}}_{ \lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if} j \in \{2,..9\}\\
+ \frac{1}{\Gamma(\kappa)} \int^{+ \infty}_{\lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if j =10}\\
+\end{cases}
+\end{equation}
+$$
+
 
 
 
@@ -196,9 +218,12 @@ Up to a multiplicative constant, the likelihood can be written as follow:
 
 $$
 \begin{split}
-L(\theta, D) = P (D | \mu, \phi) \propto \prod_{j=1}^{10} p_j
+L(\theta_k, D_k) = P (D_k | \mu_k, \phi_k) \propto \prod_{j=1}^{10} p_{k,j}^{x_{k,j}}
 \end{split}
 $$
+
+## Taking approximation 
+
 $p_j$ corresponds to the area in the $j^{\text{th}}$ interval. One can take the approximation mean the mean,e.g. $x_{Flanders,3} = (1500+1800)/2 = 1650$ ? On can approximate that with $f(x_i) \Delta$ where $\Delta$ is the unit of measurement. 
 
 $$
@@ -209,6 +234,7 @@ p_j =P(x_j - \frac{\Delta_j}{2} < x_j <x_j + \frac{\Delta_j}{2} ) & \approx f(x_
 $$
 This gives for the likelihood: 
 
+
 $$
 \begin{split}
 P (D | \mu, \phi) & \propto \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j \\
@@ -216,18 +242,23 @@ P (D | \mu, \phi) & \propto \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1} \exp{(\fr
 \end{split}
 $$
 
+## Not taking approximation but the CDF differences
 
+
+$$
+P(D | \kappa, \lambda) 
+$$
 
 # Question 2 : Priors 
 
 - Statement 1: we are at 95% convinced that the mean net monthly household income in a given region is in the interval (2400, 3600). If one assumes a normal distribution for the mean $\mu_k$ (à justifier), then it is possible to get a prior of the distriubtion for both regions: 
 
-For both regions $\bar{x} = 3000$. Then, to get the standard deviation: 
+For both regions $\mu_0 = 3000$. Then, to get the standard deviation: 
 
 $$
 \begin{split}
 & 3000 - t_{(n_k-1, 1-\alpha/2)} \frac{s_k}{\sqrt{n_k}} = 2400 \\
-\rightarrow  & \hat{\sigma} = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}}
+\rightarrow  & \hat{\sigma}_0 = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}}
 \end{split}
 $$
 
@@ -237,7 +268,7 @@ $\hat{\sigma}_{Fl} = 306$
 So we have 
 
 $$
-\bar{x}_k \sim N(\mu= 3000, \sigma =306) \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) }
+\mu \sim N(\mu_0= 3000, \sigma_0 =306) \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) }
 $$
 
 
@@ -256,24 +287,25 @@ $$
 \begin{equation}
 \begin{split} 
 \text{prior:}  P(\mu_k, \phi_k) & = P(\mu_k) \ P(\phi_k) \\
-& \propto \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0;10}
+& \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
 \end{split}
 \end{equation}
 $$
+
 # Question 3
 
 ## Question 3a: posterior
 
 $\sigma^2 = \phi \mu^2$
 
-$$
+
 \begin{equation}
 \begin{split}
 P(\mu, \phi | D) & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\ 
 & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j (\frac{1}{\sqrt{\phi} \mu}) \exp{ \big(-\frac{1}{2 \phi \mu^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\
 \end{split}
 \end{equation}
-$$
+
 
 
 
