@@ -174,38 +174,42 @@ $$
 Using CDF writing, for a region $k$ , 
 
 $$
-\begin{equation}
 p_j =
 \begin{cases}
  F(x_{j}, \kappa, \lambda) \ \text{if j =1}\\
  F(x_{j+1}, \kappa, \lambda) - F(x_{j}, \kappa, \lambda) \ \text{if} \ j \in \{2,..9\}\\
  1 - F(x_{j}, \kappa, \lambda) \ \text{if j =10}\\
 \end{cases}
-\end{equation}
 $$
 
 $$
-\begin{equation}
 p_j =
 \begin{cases}
  \frac{1}{\Gamma(\kappa)} \gamma(\kappa, \lambda x_j)  \ \text{if j =1}\\
   \frac{1}{\Gamma(\kappa)} \Big(\gamma(\kappa, \lambda x_{j+1}) - \gamma(\kappa, \lambda x_j)  \Big)   \ \text{if} j \in \{2,..9\}\\
  1- \frac{1}{\Gamma(\kappa)} \gamma(\kappa, \lambda x_j)  \ \text{if j =10}\\
 \end{cases}
-\end{equation}
 $$
-
-
+In terms of $\mu$ and $\phi$
 $$
-\begin{equation}
 p_j =
 \begin{cases}
- \frac{1}{\Gamma(\kappa)} \int^{\lambda x_j}_0 t^{\kappa-1} e^{-t} \diff{t}   \ \text{if j =1}\\
-  \frac{1}{\Gamma(\kappa)} \int^{\lambda x_{j+1}}_{ \lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if} j \in \{2,..9\}\\
- \frac{1}{\Gamma(\kappa)} \int^{+ \infty}_{\lambda x_j} t^{\kappa-1} e^{-t} \diff{t}  \ \text{if j =10}\\
+ \frac{1}{\Gamma(\phi^{-1})} \gamma(\phi^{-1}, (\mu \phi)^{-1} x_j)  \ \text{if j =1}\\
+  \frac{1}{\Gamma(\phi^{-1})} \Big(\gamma(\phi^{-1}, (\mu \phi)^{-1}x_{j+1}) - \gamma(\kappa, (\mu \phi)^{-1} x_j)  \Big)   \ \text{if} j \in \{2,..9\}\\
+ 1- \frac{1}{\Gamma(\phi^{-1})} \gamma(\phi^{-1}, (\mu \phi)^{-1} x_j)  \ \text{if j =10}\\
 \end{cases}
-\end{equation}
 $$
+
+
+$$
+p_j =
+\begin{cases}
+ \frac{1}{\Gamma(\phi^{-1})} \int^{(\mu \phi)^{-1} x_j}_0 t^{\phi^{-1}-1} e^{-t} \diff{t}   \ \text{if j =1}\\
+  \frac{1}{\Gamma(\phi^{-1})} \int^{(\mu \phi)^{-1}x_{j+1}}_{ (\mu \phi)^{-1} x_j} t^{\phi^{-1}-1} e^{-t} \diff{t}  \ \text{if} j \in \{2,..9\}\\
+ \frac{1}{\Gamma(\phi^{-1})} \int^{+ \infty}_{(\mu \phi)^{-1}x_j} t^{\phi^{-1}-1} e^{-t} \diff{t}  \ \text{if j =10}\\
+\end{cases}
+$$
+
 
 
 
@@ -253,28 +257,25 @@ $$
 
 
 $$
-\begin{equation}
 \begin{split}
-P(D| \kappa, \lambda) & \propto \gamma(x_1 , \kappa, \lambda)^{x_1} \Bigg[ \prod_{j=2}^9  \Big( \gamma(x_{j} , \kappa, \lambda)- \gamma(x_{j-1} , \kappa, \lambda)\Big)^{x_j}\Bigg] \big(1-\gamma(x_{10} , \kappa, \lambda)\big)^{x_{10}}  \\
-& \propto \Bigg( \int_0^{\lambda x_1}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_1}  \Bigg[ \prod_{j=2}^9 \Big( \int_{\lambda  x_j-1}^{\lambda x_{j}}  x^{\kappa-1} e^{-x} \diff x \Big)^{x_{j}}\Bigg] \Bigg( \int_{\lambda x_{10}}^{+\infty}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_{10}}
+P(D| \kappa, \lambda) & \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j} \gamma(x_1 , \kappa, \lambda)^{x_1} \Bigg[ \prod_{j=2}^9  \Big( \gamma(x_{j} , \kappa, \lambda)- \gamma(x_{j-1} , \kappa, \lambda)\Big)^{x_j}\Bigg] \big(1-\gamma(x_{10} , \kappa, \lambda)\big)^{x_{10}}  \\
+& \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j}  \Bigg( \int_0^{\lambda x_1}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_1}  \Bigg[ \prod_{j=2}^9 \Big( \int_{\lambda  x_j-1}^{\lambda x_{j}}  x^{\kappa-1} e^{-x} \diff x \Big)^{x_{j}}\Bigg] \Bigg( \int_{\lambda x_{10}}^{+\infty}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_{10}}
 \end{split} 
-\end{equation}
 $$
 
 If we write $[0; x_1], [x_1; x_2], ..., [x_9; x_{10}], [x_{10}, +\infty]$ as $I_1, I_2, ..., I_9$ and $I_{10}$. The notation can be lightened. With respect to the region $k$, this gives:
 $$
-\begin{equation}
-P(D_k | \kappa_k, \lambda_k) \propto \prod_{j=1}^{10} \Bigg( \int\limits_{\lambda_k I_j} x^{\kappa_k-1} e^{-x} \diff x \Bigg)^{x_{k,j}}
-\end{equation}
+P(D_k | \kappa_k, \lambda_k) \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j}  \prod_{j=1}^{10} \Bigg( \int\limits_{\lambda_k I_j} x^{\kappa_k-1} e^{-x} \diff x \Bigg)^{x_{k,j}}
 $$
 
 Writing in terms of $\mu_k$ and $\phi_k$: 
 
 $$
-\begin{equation}
-P(D_k | \mu_k, \phi_k) \propto \prod_{j=1}^{10} \Bigg( \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}}
-\end{equation}
+P(D_k | \mu_k, \phi_k) \propto  \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}}
 $$
+
+## NOT taking approximation but with PDF definitions: 
+
 
 
 # Question 2 : Priors 
@@ -289,6 +290,11 @@ $$
 \rightarrow  & \hat{\sigma}_0 = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}}
 \end{split}
 $$
+
+```{r}
+mu_prior <- 3000
+sigma_prior <- 306
+```
 
 
 $\hat{\sigma}_{Fl} = 306$
@@ -315,12 +321,10 @@ Using the entropy theorem, the conjugate prior would be the product of the two l
 
 
 $$
-\begin{equation}
 \begin{split} 
 \text{prior:}  P(\mu_k, \phi_k) & = P(\mu_k) \ P(\phi_k) \\
 & \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
 \end{split}
-\end{equation}
 $$
 
 # Question 3
@@ -331,37 +335,47 @@ $$
 $\sigma^2 = \phi \mu^2$
 
 $$
-\begin{equation}
 \begin{split}
 P(\mu, \phi | D) & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\ 
 & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j (\frac{1}{\sqrt{\phi} \mu}) \exp{ \big(-\frac{1}{2 \phi \mu^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\
 \end{split}
-\end{equation}
 $$
 
 
 ### Without approximation
 
 $$
-\begin{equation}
 \begin{split}
-P(\mu_k, \phi_k | D) \propto \Bigg( \prod_{j=1}^{10} \Bigg( \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}} \Bigg)  \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
+P(\mu_k, \phi_k | D) \propto  \Bigg( \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}} \Bigg)  \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
 \end{split}
-\end{equation}
 $$
 
 ## 3.b 
 
-the log likelihood is:
+the log likelihood is, up to an additive constant:
 $$
 \begin{split}
-LL & \propto \sum_{j=1}^{10} x_j \ln{\Bigg( \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)}
+l(\mu,\phi) & \propto  \sum_{j=1}^{10} x_j \ln{\Bigg(\frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)}
 \end{split}
 $$
+so the log-posterior is: 
+
+$$
+h(\mu,\phi) \propto  l(\mu,\phi) + \ln(\pi(\mu,\phi))
+$$
+
+$$
+h(\mu,\phi) = C^t +  \sum_j x_j \ln{\big(F(\mu,\phi,x_{j+1})-F(\mu,\phi,x_{j})  \big)} - \frac{1}{2 \sigma_0^2} (\mu-\mu_0)^2
+$$
+
+
 
 ```{r}
 lpost <- function(theta,freq){
   Intervals <- c(1200,1500,1800, 2300,2700,3300,4000,4900,6000) # length =9 
+  mu_prior <- 3000
+  sigma_prior <- 306
+  
   mu <- theta[1]
   phi <- theta[2]
   kappa <- 1/phi
@@ -376,7 +390,8 @@ lpost <- function(theta,freq){
   }
   ## de x_n  à +infinity (=> 6000 --> inf )
   LL <-  LL+ freq[n]* log(1-pgamma(Intervals[n], kappa, lambda))
-  return(LL)
+  logPost <- LL - 1/2*(mu-mu_prior)^2/sigma_prior^2
+  logPost
 }
 ```
 
@@ -388,23 +403,49 @@ lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
 
 # 4. 
 
+Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is unimodale then, if it is normally distributed, then the mode=mean, which means that the mean can be found by optimizing the log-likelihood with respect to its parameters. (aussi assumer $\mu$ et $\phi$ indépendant?? ), then blablabla (expliquez avec hessienne). 
 
-$$
-h(\mu,\phi) \propto  l(\mu,\phi) + \ln(\pi(\mu,\phi))
-$$
 
-$$
-h(\mu,\phi) = Ct + \sum_j x_j \ln{\big(F(\mu,\phi,x_{j+1})-F(\mu,\phi,x_{j})  \big)} - \frac{1}{2 \sigma_0^2} (\mu-\mu_0)^2
-$$
+Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=Laplace%20Approximation%20of%20Posterior%20Distributions&text=Laplace%20approximation%20is%20a%20method,the%20posterior%20at%20the%20mode. 
 
-... 
-pour le moment... (voir photo envoyée sur messenger)
-$$
-\begin{split}
-\mu^* & =  \mu_0 + \sigma_0^2 (\sum^{10}x_j \frac{f_{j+1} - f_{j}}{ F_{j+1} -F{j}} ) \\
-\sigma^{2*} &= \sigma_0^2 
-\end{split}
-$$
+```{r}
+inits <- c(mu = mu_prior , phi = 0.01)
+```
+
+- Flanders 
+```{r}
+
+fit_Fl <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
+param_mean_Fl <- fit_Fl$par
+param_cov_mat_Fl <- solve(-fit_Fl$hessian)
+round(param_mean_Fl, 2)
+round(param_cov_mat_Fl, 3)
+```
+
+```{r}
+library(mvtnorm)
+samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
+plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
+plot(density(samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
+```
+
+
+- Wallonia
+
+```{r}
+fit_Wal <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
+param_mean_Wal <- fit_Wal$par
+param_cov_mat_Wal <- solve(-fit_Wal$hessian)
+round(param_mean_Wal, 2)
+round(param_cov_mat_Wal, 3)
+```
+```{r}
+samples_Wal <- rmvnorm(100000, param_mean_Wal, param_cov_mat_Wal)
+plot(density(samples_Wal[,1]), main = 'laplace approximation for mu in Wallonia')
+plot(density(samples_Wal[,2]), main = 'laplace approximation for phi in Wallonia')
+```
+
+
 
 <!------>
 \appendix
