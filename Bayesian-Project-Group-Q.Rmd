@@ -491,7 +491,17 @@ We needs that $95\%$ of the marginal posterior to fall into the interval for Fla
 ```{r}
 alpha <- 0.05
 marginal_posterior_mu_Fl <- rnorm(10000,param_mean_Fl[1], sqrt(param_cov_mat_Fl[1,1]))
-quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
+# Quantile based credible intervals 
+QuantileCI_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
+# HPD intervals 
+HPDIntervals_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
+
+plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
+legend("topleft", legend=c("HPD", "quantile-based"),
+       col=c("red", "green"), lty=1:2)
+
+abline(v=c(HPDIntervals_Fl[1], HPDIntervals_Fl[2]), col="red", lty=1)
+abline(v=c(QuantileCI_Fl[1], QuantileCI_Fl[2]), col="green", lty=2)
 ```
 
 
