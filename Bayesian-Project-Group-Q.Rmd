@@ -402,6 +402,7 @@ lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
 
 # 4. 
 
+## Estimation 
 Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is unimodale then, if it is normally distributed, then the mode=mean, which means that the mean can be found by optimizing the log-likelihood with respect to its parameters. (aussi assumer $\mu$ et $\phi$ indépendant?? ), then blablabla (expliquez avec hessienne). 
 
 
@@ -411,7 +412,7 @@ Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=
 inits <- c(mu = mu_prior , phi = 0.01)
 ```
 
-- Flanders 
+### Flanders
 ```{r}
 
 fit_Fl <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
@@ -423,13 +424,13 @@ round(param_cov_mat_Fl, 3)
 
 ```{r}
 library(mvtnorm)
-samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
+samples_Fl <- rmvnorm(10000, param_mean_Fl, param_cov_mat_Fl)
 plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
 plot(density(samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
 ```
 
 
-- Wallonia
+### Wallonia
 
 ```{r}
 fit_Wal <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
@@ -439,9 +440,58 @@ round(param_mean_Wal, 2)
 round(param_cov_mat_Wal, 3)
 ```
 ```{r}
-samples_Wal <- rmvnorm(100000, param_mean_Wal, param_cov_mat_Wal)
+samples_Wal <- rmvnorm(10000, param_mean_Wal, param_cov_mat_Wal)
 plot(density(samples_Wal[,1]), main = 'laplace approximation for mu in Wallonia')
 plot(density(samples_Wal[,2]), main = 'laplace approximation for phi in Wallonia')
+```
+
+## Credible intervals Laplce approximation
+
+```{r}
+levels <- c(0.1,0.25)
+```
+
+### Flanders
+The credible region is given here below: 
+
+```{r}
+plot(x =samples_Fl[,1] , y = samples_Fl[,2] , xlab = 'mu', ylab='phi', pch='.')
+x1 <- seq(3400,4000,length=1000)
+y1 <- seq(0.16,0.26, length=1000)
+lpostFl_laplaceApprox <- function(MyMu,MyPhi){ #theta_l = c(mu,phi)
+  MuPhi <-  cbind(MyMu,MyPhi)
+  dmvnorm(MuPhi, colMeans(samples_Fl), cov(samples_Fl), log=TRUE)
+}
+
+z1 <- outer(x1,y1,lpostFl_laplaceApprox)
+R <- exp(z1-max(z1)) 
+lvls <- c(0.01, 0.25, 0.5, 0.75, 0.9)
+contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-lvls))
+
+```
+
+We needs to get the credible interval for $\mu$. This means that we needs the marginal posterior distribution: 
+
+$$
+P(\mu| D) \propto \int p(\mu, \phi |D) \diff \phi
+$$
+It can be shown that the marginal (univariate) distribution of the bivariate Gaussian distribution $N\big( \mu_\theta, \Sigma)$ with $\mu_\theta = (E(\mu), E(\phi) )$ and 
+
+$$
+\Sigma =
+\begin{pmatrix}
+\sigma_\mu & \sigma_{\mu,\phi} \\
+\sigma_{\phi,\mu} & \sigma_\phi
+\end{pmatrix}
+$$ 
+also follows a normal distribution. See \href{https://paolomaccallini.com/2018/06/20/bivariate-normal-distribution/}{here}. Hence, for $\mu$, one has: 
+
+$$\mu|D \sim N(E(\mu),\sigma_\mu) $$
+We needs that $95\%$ of the marginal posterior to fall into the interval for Flanders:
+```{r}
+alpha <- 0.05
+marginal_posterior_mu_Fl <- rnorm(10000,param_mean_Fl[1], sqrt(param_cov_mat_Fl[1,1]))
+quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
 ```
 
 
