@@ -50,7 +50,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   cache = TRUE,
-  echo = F,
+  echo = T,
   eval = T,	
   	
   warning = F,	
