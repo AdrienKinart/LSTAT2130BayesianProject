@@ -524,20 +524,25 @@ burnin <- 1000 # after, should become stationary
 MetropMu <- rep(NA,M)
 MetropMu[1] <- Estimated_mu_Fl # MLE
 n_accept_mu<-0 # it's a counter of the number of accepted samples
-sd_prop_mu <-1.6 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
 # ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate. 
 
 MetropPhi <- rep(NA,M)
 MetropPhi[1] <- Estimated_phi_Fl # MLE
 n_accept_Phi<-0
-sd_prop_Phi < 0.0000001
+phi_factor <- 2.75
 
 
 for (i in 2:M){
-  mu_prop <- MetropMu[i-1] + rnorm(1,0,sd_prop_mu^2*sd_hat_of_mu)
-  theta_prop <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+  mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
+  phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
+  
+  theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+  theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit...
+  
   theta_current <- c(MetropMu[i-1], MetropPhi[i-1])
-  prob_mu <- min(1,exp(lpost(theta_prop, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
+  
+  prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
   accept_mu <- (runif(1)<=prob_mu)
   if (accept_mu){
     MetropMu[i] <- mu_prop
@@ -546,10 +551,7 @@ for (i in 2:M){
     MetropMu[i] <- MetropMu[i-1]
   }
   
-  phi_prop <- MetropPhi[i-1] + rnorm(1,0,sd_prop_Phi^2*sd_hat_of_phi)
-  theta_prop <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[1] à utiliser? Le dernier est dispo en soit...
-  theta_current <- c(MetropMu[i-1], MetropPhi[i-1]) # même question
-  prob_phi <- min(1,exp(lpost(theta_prop, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
+  prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
   accept_phi <- (runif(1)<=prob_phi)
   if (accept_phi){
     MetropPhi[i] <- phi_prop
@@ -581,6 +583,79 @@ cat("Acceptance rate for phi: ",accept_rate_phi,"\n")
 
 
 ```
+
+```{r MCMCBIS}
+# Starting value for mu and and phi defined earlier ==> defined using MLE: (Estimated_mu_Fl,Estimated_phi_Fl)
+# Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
+# sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
+# sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
+# 
+# M <- 21000
+# burnin <- 1000 # after, should become stationary
+# 
+# MetropMu <- rep(NA,M)
+# MetropMu[1] <- Estimated_mu_Fl # MLE
+# n_accept_mu<-0 # it's a counter of the number of accepted samples
+# mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+# # ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate.
+# 
+# MetropPhi <- rep(NA,M)
+# MetropPhi[1] <- Estimated_phi_Fl # MLE
+# n_accept_Phi<-0
+# phi_factor <- 2.75
+# 
+# 
+# for (i in 2:M){
+#   mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
+#   theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+#   theta_current1 <- c(MetropMu[i-1], MetropPhi[i-1])
+# 
+#   prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current1, freq = t(Table[1,]))))
+#   accept_mu <- (runif(1)<=prob_mu)
+#   if (accept_mu){
+#     MetropMu[i] <- mu_prop
+#     n_accept_mu <- n_accept_mu + 1
+#   } else {
+#     MetropMu[i] <- MetropMu[i-1]
+#   }
+# 
+#   phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
+#   theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit..
+#   theta_current2 <- c(MetropMu[i], MetropPhi[i-1])
+# 
+#   prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current2, freq = t(Table[1,]))))
+#   accept_phi <- (runif(1)<=prob_phi)
+#   if (accept_phi){
+#     MetropPhi[i] <- phi_prop
+#     n_accept_Phi <- n_accept_Phi + 1
+#   } else {
+#     MetropPhi[i] <- MetropPhi[i-1]
+#   }
+# 
+# }
+# 
+# 
+# # Exclude burnin
+# MetropMu = MetropMu[-c(1:burnin)]
+# #rownames(MetropMu) <- c("mu")
+# MetropPhi = MetropPhi[-c(1:burnin)]
+# #rownames(MetropPhi) <- "phi"
+# 
+# theta <- cbind(MetropMu, MetropPhi)
+# 
+# accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
+# cat("Acceptance rate for mu: ",accept_rate_mu,"\n")
+# 
+# accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
+# cat("Acceptance rate for phi: ",accept_rate_phi,"\n")
+# 
+
+# Descriptive statistics for each model parameter
+#summary(t(theta))
+
+
+```
+
 
 Il va falloir comparer ça avec la Laplace approximation 
 
