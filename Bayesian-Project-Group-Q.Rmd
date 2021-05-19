@@ -50,7 +50,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   cache = TRUE,
-  echo = F,
+  echo = T,
   eval = T,	
   	
   warning = F,	
@@ -516,43 +516,147 @@ Il faut encore faire pour phi de la Flandre
 ```{r}
 # Starting value for mu and and phi defined earlier ==> defined using MLE: (Estimated_mu_Fl,Estimated_phi_Fl)
 # Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
-Sigma_hat_metropolis_Fl <- cov(samples_Fl)
-M <- 21000
-burnin <- 1000 # after, should become stationary
-theta <- array(dim=c(2,M))
-theta[,1] <- c(Estimated_mu_Fl, Estimated_phi_Fl) # starting values
-# At each iteration, 1 column gonna be filled in. 
-theta[, 1:5]
+sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
+sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
 
-n_accept<-0 # it's a counter of the number of accepted samples
-sd_prop<-2.6 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+M <- 51000
+burnin <- 1000 # after, should become stationary
+
+MetropMu <- rep(NA,M)
+MetropMu[1] <- Estimated_mu_Fl # MLE
+n_accept_mu<-0 # it's a counter of the number of accepted samples
+mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
 # ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate. 
 
-# iteration loop
-for (i in 2:M){
-  theta_prop <- theta[,i-1] + rmnorm(1,c(0,0),sd_prop^2*Sigma_hat_metropolis_Fl)
-  prob <- min(1,exp(lpost(theta_prop, freq = t(Table[1,]) )-lpost(theta[,i-1], freq = t(Table[1,]))))
-  accept <- (runif(1)<=prob)
-  if (accept){
-    theta[,i] <- theta_prop
-    n_accept <- n_accept + 1
-  } else {
-    theta[,i] <- theta[,i-1]
-  }
-}
-# Exclude burnin
-theta = theta[,-c(1:burnin)]
-rownames(theta) <- c("mu", "phi")
+MetropPhi <- rep(NA,M)
+MetropPhi[1] <- Estimated_phi_Fl # MLE
+n_accept_Phi<-0
+phi_factor <- 2.75
 
-accept_rate <- paste0(round(n_accept/(M-1),digits=2)*100,"%")
-cat("Acceptance rate : ",accept_rate,"\n") ## 22% ==> good :) (when sd_prop = l'autre alors 7%, c'es trop loin)
+
+for (i in 2:M){
+  mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
+  phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
+  
+  theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+  theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit...
+  
+  theta_current <- c(MetropMu[i-1], MetropPhi[i-1])
+  
+  prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
+  accept_mu <- (runif(1)<=prob_mu)
+  if (accept_mu){
+    MetropMu[i] <- mu_prop
+    n_accept_mu <- n_accept_mu + 1
+  } else {
+    MetropMu[i] <- MetropMu[i-1]
+  }
+  
+  prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
+  accept_phi <- (runif(1)<=prob_phi)
+  if (accept_phi){
+    MetropPhi[i] <- phi_prop
+    n_accept_Phi <- n_accept_Phi + 1
+  } else {
+    MetropPhi[i] <- MetropPhi[i-1]
+  }
+  
+}
+
+
+# Exclude burnin
+MetropMu = MetropMu[-c(1:burnin)]
+#rownames(MetropMu) <- c("mu")
+MetropPhi = MetropPhi[-c(1:burnin)]
+#rownames(MetropPhi) <- "phi"
+
+theta <- cbind(MetropMu, MetropPhi)
+
+accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
+cat("Acceptance rate for mu: ",accept_rate_mu,"\n") 
+
+accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
+cat("Acceptance rate for phi: ",accept_rate_phi,"\n") 
 
 
 # Descriptive statistics for each model parameter
-summary(t(theta))
+#summary(t(theta))
 
 
 ```
+
+```{r MCMCBIS}
+# Starting value for mu and and phi defined earlier ==> defined using MLE: (Estimated_mu_Fl,Estimated_phi_Fl)
+# Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
+# sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
+# sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
+# 
+# M <- 21000
+# burnin <- 1000 # after, should become stationary
+# 
+# MetropMu <- rep(NA,M)
+# MetropMu[1] <- Estimated_mu_Fl # MLE
+# n_accept_mu<-0 # it's a counter of the number of accepted samples
+# mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+# # ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate.
+# 
+# MetropPhi <- rep(NA,M)
+# MetropPhi[1] <- Estimated_phi_Fl # MLE
+# n_accept_Phi<-0
+# phi_factor <- 2.75
+# 
+# 
+# for (i in 2:M){
+#   mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
+#   theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+#   theta_current1 <- c(MetropMu[i-1], MetropPhi[i-1])
+# 
+#   prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current1, freq = t(Table[1,]))))
+#   accept_mu <- (runif(1)<=prob_mu)
+#   if (accept_mu){
+#     MetropMu[i] <- mu_prop
+#     n_accept_mu <- n_accept_mu + 1
+#   } else {
+#     MetropMu[i] <- MetropMu[i-1]
+#   }
+# 
+#   phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
+#   theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit..
+#   theta_current2 <- c(MetropMu[i], MetropPhi[i-1])
+# 
+#   prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current2, freq = t(Table[1,]))))
+#   accept_phi <- (runif(1)<=prob_phi)
+#   if (accept_phi){
+#     MetropPhi[i] <- phi_prop
+#     n_accept_Phi <- n_accept_Phi + 1
+#   } else {
+#     MetropPhi[i] <- MetropPhi[i-1]
+#   }
+# 
+# }
+# 
+# 
+# # Exclude burnin
+# MetropMu = MetropMu[-c(1:burnin)]
+# #rownames(MetropMu) <- c("mu")
+# MetropPhi = MetropPhi[-c(1:burnin)]
+# #rownames(MetropPhi) <- "phi"
+# 
+# theta <- cbind(MetropMu, MetropPhi)
+# 
+# accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
+# cat("Acceptance rate for mu: ",accept_rate_mu,"\n")
+# 
+# accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
+# cat("Acceptance rate for phi: ",accept_rate_phi,"\n")
+# 
+
+# Descriptive statistics for each model parameter
+#summary(t(theta))
+
+
+```
+
 
 Il va falloir comparer ça avec la Laplace approximation 
 
@@ -561,22 +665,29 @@ Il va falloir comparer ça avec la Laplace approximation
 
 difficult to say if mixing is good while checking the trace (?)
 ```{r}
+plot(theta[,1], theta[,2], xlab = 'mu', ylab = 'phi')
 par(mfrow=c(2,2))
-traceplot(as.mcmc(t(theta)))
+traceplot(as.mcmc(theta))
+
+library(MASS)
+library(plotly)
+den3d <- kde2d(theta[,1], theta[,2])
+plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
+
 ```
 
 ```{r}
-acf((theta[1,]), lag.max = 30)
-acf((theta[2,]), lag.max = 30)
-effectiveSize(mcmc(t(theta)))
+acf((theta[,1]), lag.max = 30)
+acf((theta[,2]), lag.max = 30)
+effectiveSize(mcmc((theta)))
 ```
 
-Assesment from a single chain
+Assessment from a single chain
 
 ```{r}
-geweke.diag(mcmc(t(theta)))
+geweke.diag(mcmc((theta)))
 par(mfrow=c(2,1))
-geweke.plot(mcmc(t(theta)), nbins = 20)
+geweke.plot(mcmc((theta)), nbins = 20)
 ```
 
 Except for one, they ye all into the confidence interval. Hence, there is no reason to think that the chain needs to be truncated or the chain to be made longer. 
@@ -588,18 +699,18 @@ Bon là, y a tout en dessous
 Metropolis: 
 ```{r}
 # Metropolis HPD intervals
-HPDmu_metrop_Fl<- HPDinterval(as.mcmc(t(theta)))[1,]
-HPDphi_metrop_Fl<- HPDinterval(as.mcmc(t(theta)))[2,]
+HPDmu_metrop_Fl<- HPDinterval(as.mcmc((theta)))[1,]
+HPDphi_metrop_Fl<- HPDinterval(as.mcmc((theta)))[2,]
 # quantile based Metropolis credible intervals
-CImu_Fl <- quantile(theta[1,], probs = c(alpha/2,1-alpha/2))
-CIphi_Fl <- quantile(theta[2,], probs = c(alpha/2,1-alpha/2))
+CImu_Fl <- quantile(theta[,1], probs = c(alpha/2,1-alpha/2))
+CIphi_Fl <- quantile(theta[,2], probs = c(alpha/2,1-alpha/2))
 
-densplot(as.mcmc((theta[1,])), col="blue", 
+densplot(as.mcmc((theta[,1])), col="blue", 
          main = "Estimated density of mu with metropolis algorithm")
 abline(v=c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col="red")
 abline(v=CImu_Fl, col='green')
 
-densplot(as.mcmc((theta[2,])), col="blue", 
+densplot(as.mcmc((theta[,2])), col="blue", 
          main = "Estimated density of phi with metropolis algorithm")
 abline(v=c(HPDphi_metrop_Fl[1], HPDphi_metrop_Fl[2]), col="red")
 abline(v=CIphi_Fl, col='green')
