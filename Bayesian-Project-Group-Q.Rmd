@@ -494,22 +494,35 @@ We needs that $95\%$ of the marginal posterior to fall into the interval for Fla
 alpha <- 0.05
 marginal_posterior_mu_Fl <- rnorm(10000,param_mean_Fl[1], sqrt(param_cov_mat_Fl[1,1]))
 # Quantile based credible intervals 
-QuantileCI_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
+QuantileCI_Laplace_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
 # HPD intervals 
-HPDIntervals_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
+HPDIntervals_Laplace_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
 
 plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
 legend("topleft", legend=c("HPD", "quantile-based"),
        col=c("red", "green"), lty=1:2)
 
-abline(v=c(HPDIntervals_Fl[1], HPDIntervals_Fl[2]), col="red", lty=1)
-abline(v=c(QuantileCI_Fl[1], QuantileCI_Fl[2]), col="green", lty=2)
+abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col="red", lty=1)
+abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col="green", lty=2)
 ```
 Il faut encore faire pour phi de la Flandre
 
 # Question 5
 
-## (a) 
+## (a) Random walk  component-wise Metropololis algorithm
+One first needs starting values for $\theta_t := (\mu_t,\phi_t)$. One can take advantage of the MLE estimations of $\kappa$ and $\lambda$ and compute $\mu_0$ and $\phi_0$ using the relations described earlier. At each iteration, a new candidate will be proposed. To build it, it is a good idea to use the variance-covariance matrix computed into the Laplace approximation section since it should, more or less, describe the standard deviations of the parameters of interest $\hat{\sigma}_\mu$ and$\hat{\sigma}_\phi$. A factor, $f_1$ and $f_2$ should multiply their standard deviation in order to optimize the acceptance rate (goal is $40 \%$). Moreover, since the posterior probability is on a log-scale, the comparison of probabilities should be made taking the exponential of the difference of the candidate with the current state. In this work, $10\%$ of the generated data is considered as burn-in.
+
+That being, this gives the following algorithm:
+
+1. $t=0$: Set starting values of the parameters of interest to their MLE: $\theta_0 := (\hat{\mu}_{MLE},\hat{\phi}_{MLE})$
+2. for $t=2,3,.. 55 000$    
+    + Draw $\mu_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\mu_{\text{prop}} \sim N(\mu_{t-1} ,f_1 \hat{\sigma}_\mu) $. The candidate is then $\theta^\mu_{prop} := (\mu_{\text{prop}}, \phi_{t-1} )$
+    + Compute $prob_\mu= \min{\Big(1,\exp\big(h(\theta^\mu_{prop})- h(\theta_{t-1}\big) \Big)}$
+    + Set $\mu_t = \mu_{\text{prop}}$ with probability $prob_\mu$, $\mu_t = \mu_{t-1}$ otherwise.
+    + Draw $\phi_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\phi_{\text{prop}} \sim N(\phi_{t-1} ,f_2 \hat{\sigma}_\phi) $. The candidate is then $\theta^\phi_{prop} := (\mu_{t-1}, \phi_{\text{prop}})$
+    + Compute $prob= \min{\Big(1,\exp\big(h(\theta^\phi_{prop})- h(\theta_{t-1}\big) \Big)}$
+    + Set $\phi_t = \phi_{\text{prop}}$ with probability $prob_\phi$, $\phi_t = \phi_{t-1}$ otherwise.
+    + Set $\theta_t = (\mu_t, \phi_t)$
 
 
 ```{r}
@@ -518,20 +531,18 @@ Il faut encore faire pour phi de la Flandre
 sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
 sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
 
-M <- 51000
-burnin <- 1000 # after, should become stationary
+M <- 55000
+burnin <- floor(M/10) # after, should become stationary
 
 MetropMu <- rep(NA,M)
 MetropMu[1] <- Estimated_mu_Fl # MLE
 n_accept_mu<-0 # it's a counter of the number of accepted samples
 mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
-# ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate. 
 
 MetropPhi <- rep(NA,M)
 MetropPhi[1] <- Estimated_phi_Fl # MLE
 n_accept_Phi<-0
 phi_factor <- 2.75
-
 
 for (i in 2:M){
   mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
@@ -562,161 +573,105 @@ for (i in 2:M){
   
 }
 
+theta_before_removing_burning <- cbind(MetropMu, MetropPhi)
 
 # Exclude burnin
 MetropMu = MetropMu[-c(1:burnin)]
-#rownames(MetropMu) <- c("mu")
 MetropPhi = MetropPhi[-c(1:burnin)]
-#rownames(MetropPhi) <- "phi"
 
 theta <- cbind(MetropMu, MetropPhi)
-
 accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
 cat("Acceptance rate for mu: ",accept_rate_mu,"\n") 
 
 accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
 cat("Acceptance rate for phi: ",accept_rate_phi,"\n") 
 
-
-# Descriptive statistics for each model parameter
-#summary(t(theta))
-
-
 ```
 
-```{r MCMCBIS}
-# Starting value for mu and and phi defined earlier ==> defined using MLE: (Estimated_mu_Fl,Estimated_phi_Fl)
-# Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
-# sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
-# sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
-# 
-# M <- 21000
-# burnin <- 1000 # after, should become stationary
-# 
-# MetropMu <- rep(NA,M)
-# MetropMu[1] <- Estimated_mu_Fl # MLE
-# n_accept_mu<-0 # it's a counter of the number of accepted samples
-# mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
-# # ==> se trouve via iterations dans la boucle du bas jusqu'à avoir le bon acceptance rate.
-# 
-# MetropPhi <- rep(NA,M)
-# MetropPhi[1] <- Estimated_phi_Fl # MLE
-# n_accept_Phi<-0
-# phi_factor <- 2.75
-# 
-# 
-# for (i in 2:M){
-#   mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
-#   theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
-#   theta_current1 <- c(MetropMu[i-1], MetropPhi[i-1])
-# 
-#   prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current1, freq = t(Table[1,]))))
-#   accept_mu <- (runif(1)<=prob_mu)
-#   if (accept_mu){
-#     MetropMu[i] <- mu_prop
-#     n_accept_mu <- n_accept_mu + 1
-#   } else {
-#     MetropMu[i] <- MetropMu[i-1]
-#   }
-# 
-#   phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
-#   theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit..
-#   theta_current2 <- c(MetropMu[i], MetropPhi[i-1])
-# 
-#   prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current2, freq = t(Table[1,]))))
-#   accept_phi <- (runif(1)<=prob_phi)
-#   if (accept_phi){
-#     MetropPhi[i] <- phi_prop
-#     n_accept_Phi <- n_accept_Phi + 1
-#   } else {
-#     MetropPhi[i] <- MetropPhi[i-1]
-#   }
-# 
-# }
-# 
-# 
-# # Exclude burnin
-# MetropMu = MetropMu[-c(1:burnin)]
-# #rownames(MetropMu) <- c("mu")
-# MetropPhi = MetropPhi[-c(1:burnin)]
-# #rownames(MetropPhi) <- "phi"
-# 
-# theta <- cbind(MetropMu, MetropPhi)
-# 
-# accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
-# cat("Acceptance rate for mu: ",accept_rate_mu,"\n")
-# 
-# accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
-# cat("Acceptance rate for phi: ",accept_rate_phi,"\n")
-# 
-
-# Descriptive statistics for each model parameter
-#summary(t(theta))
-
-
-```
-
-
-Il va falloir comparer ça avec la Laplace approximation 
-
-
-## (b) diagnostic 
-
-difficult to say if mixing is good while checking the trace (?)
 ```{r}
-plot(theta[,1], theta[,2], xlab = 'mu', ylab = 'phi')
-par(mfrow=c(2,2))
-traceplot(as.mcmc(theta))
-
+plot(MetropMu, MetropPhi, xlab = 'mu', ylab = 'phi')
 library(MASS)
 library(plotly)
 den3d <- kde2d(theta[,1], theta[,2])
 plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
-
 ```
 
+
+## (b) diagnostic for convergence
+
+### Graphes analysis
+The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
 ```{r}
+par(mfrow=c(2,1))
+traceplot(as.mcmc(theta))
+```
+By doing so, one sees that the mixing seems pretty good. For example, the autocorrelation is significative up to not a too high order. As such, the parameter space of $theta$ does not seem to be visited to slowly. 
+```{r}
+par(mfrow=c(2,1))
 acf((theta[,1]), lag.max = 30)
+pacf((theta[,1]), lag.max = 30)
 acf((theta[,2]), lag.max = 30)
-effectiveSize(mcmc((theta)))
+pacf((theta[,2]), lag.max = 30)
+```
+Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autcorrelation. 
+```{r}
+effectiveSize(theta)
 ```
 
-Assessment from a single chain
+
+
+#### Gelman-Rubin 
+
+
+### Geweke diagnostic
+The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, repsectively:
 
 ```{r}
 geweke.diag(mcmc((theta)))
 par(mfrow=c(2,1))
-geweke.plot(mcmc((theta)), nbins = 20)
 ```
 
-Except for one, they ye all into the confidence interval. Hence, there is no reason to think that the chain needs to be truncated or the chain to be made longer. 
+To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
+
+```{r}
+geweke.plot(mcmc((theta)), nbins = 50)
+```
+
+Except for one in $\phi$, the hypothesis of same mean in never rejected. There is still no proof of non convergence of the generated chains. 
+
+### Additional diagnostics
+```{r}
+heidel.diag(theta)
+raftery.diag(theta)
+```
 
 
 ## (c) Credible intervals for mu1
-Bon là, y a tout en dessous
 
-Metropolis: 
 ```{r}
-# Metropolis HPD intervals
+## FOR mu in Flanders
+
 HPDmu_metrop_Fl<- HPDinterval(as.mcmc((theta)))[1,]
-HPDphi_metrop_Fl<- HPDinterval(as.mcmc((theta)))[2,]
-# quantile based Metropolis credible intervals
 CImu_Fl <- quantile(theta[,1], probs = c(alpha/2,1-alpha/2))
-CIphi_Fl <- quantile(theta[,2], probs = c(alpha/2,1-alpha/2))
+densplot(as.mcmc((theta[,1])), main = "Comparison between Metropolis and Laplace approximation for mu in Flanders" )
+legend("topleft", legend = c("HPD metropolis", "Quantiles Metropolis", "Laplace HPD", "Laplace quantiles"),
+       col=1:4, lty=c(1,1,2,2))
+abline(v=c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col=1)
+abline(v=CImu_Fl, col=2)
+abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col=3, lty=2)
+abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col=4, lty=2)
+```
 
-densplot(as.mcmc((theta[,1])), col="blue", 
-         main = "Estimated density of mu with metropolis algorithm")
-abline(v=c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col="red")
-abline(v=CImu_Fl, col='green')
-
-densplot(as.mcmc((theta[,2])), col="blue", 
-         main = "Estimated density of phi with metropolis algorithm")
-abline(v=c(HPDphi_metrop_Fl[1], HPDphi_metrop_Fl[2]), col="red")
-abline(v=CIphi_Fl, col='green')
+```{r}
+# Encore à faire, là ça fait de la merde
+library(kableExtra)
+kable(as.data.frame(matrix(data=cbind(HPDmu_metrop_Fl, CImu_Fl,HPDIntervals_Laplace_Fl, QuantileCI_Laplace_Fl) 
+                           , nrow = 2)))
 ```
 
 
-Comparison: voir les deux graphes et chopper les valeurs 
+
+# Question 6 : same question as 5 but with JAGS
 
 <!------>
 \appendix
