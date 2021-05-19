@@ -518,7 +518,7 @@ Il faut encore faire pour phi de la Flandre
 sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
 sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
 
-M <- 21000
+M <- 51000
 burnin <- 1000 # after, should become stationary
 
 MetropMu <- rep(NA,M)
@@ -667,6 +667,12 @@ difficult to say if mixing is good while checking the trace (?)
 plot(theta[,1], theta[,2], xlab = 'mu', ylab = 'phi')
 par(mfrow=c(2,2))
 traceplot(as.mcmc(theta))
+
+library(MASS)
+library(plotly)
+den3d <- kde2d(theta[,1], theta[,2])
+plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
+
 ```
 
 ```{r}
@@ -675,7 +681,7 @@ acf((theta[,2]), lag.max = 30)
 effectiveSize(mcmc((theta)))
 ```
 
-Assesment from a single chain
+Assessment from a single chain
 
 ```{r}
 geweke.diag(mcmc((theta)))
