@@ -294,7 +294,7 @@ $$
 
 ```{r}
 mu_prior <- 3000
-sigma_prior <- 306
+sigma_prior <- 306.12
 ```
 
 
@@ -373,26 +373,20 @@ $$
 
 ```{r}
 lpost <- function(theta,freq){
-  Intervals <- c(1200,1500,1800, 2300,2700,3300,4000,4900,6000) # length =9 
-  mu_prior <- 3000
-  sigma_prior <- 306
-  
-  mu <- theta[1]
-  phi <- theta[2]
-  kappa <- 1/phi
-  lambda <- 1/(phi*mu)
-  n <- length(Intervals)
+  Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, Inf) # length =11. J'ai rajouté INFINI
 
-  #initialisation: j=1 ==>  x_1 * proba(0,x_1) 
-  LL <- freq[1]* log(pgamma(Intervals[1], kappa, lambda))
+  mu <- theta[1] ; phi <- theta[2]
+  kappa <- 1/phi ; lambda <- 1/(phi*mu)
+  n <- length(freq)
   
-  for (i in 2:(n-1)) {
-    LL <- LL + freq[i] *log(pgamma(Intervals[i+1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))
-  }
-  ## de x_n  à +infinity (=> 6000 --> inf )
-  LL <-  LL+ freq[n]* log(1-pgamma(Intervals[n], kappa, lambda))
-  logPost <- LL - 1/2*(mu-mu_prior)^2/sigma_prior^2
-  logPost
+  # intialisation
+  LL <- 0
+  
+  for (i in 1:n) {
+    LL <- LL + freq[i] *log(pgamma(Intervals[i+1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))}
+
+  logPost <- LL -(1/(2*sigma_prior^2))*(mu- mu_prior)^2
+  return(logPost)
 }
 ```
 
@@ -416,7 +410,6 @@ inits <- c(mu = mu_prior , phi = 0.01)
 
 ### Flanders
 ```{r}
-
 fit_Fl <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
 param_mean_Fl <- fit_Fl$par
 param_cov_mat_Fl <- solve(-fit_Fl$hessian)
@@ -426,7 +419,7 @@ round(param_cov_mat_Fl, 3)
 
 ```{r}
 library(mvtnorm)
-samples_Fl <- rmvnorm(10000, param_mean_Fl, param_cov_mat_Fl)
+samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
 plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
 plot(density(samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
 ```
@@ -468,9 +461,16 @@ lpostFl_laplaceApprox <- function(MyMu,MyPhi){ #theta_l = c(mu,phi)
 z1 <- outer(x1,y1,lpostFl_laplaceApprox)
 R <- exp(z1-max(z1)) 
 lvls <- c(0.01, 0.25, 0.5, 0.75, 0.9)
-contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-lvls))
+contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-lvls), col = 'red')
 
 ```
+```{r}
+library(MASS)
+library(plotly)
+den3dLaplaceApprox <- kde2d(samples_Fl[,1], samples_Fl[,2])
+plot_ly(x=den3dLaplaceApprox$x, y=den3dLaplaceApprox$y, z=den3dLaplaceApprox$z) %>% add_surface()
+```
+
 
 We needs to get the credible interval for $\mu$. This means that we needs the marginal posterior distribution: 
 
@@ -599,7 +599,7 @@ plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
 
 ## (b) diagnostic for convergence
 
-### Graphes analysis
+### Graphs analysis
 The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
 ```{r}
 par(mfrow=c(2,1))
@@ -621,6 +621,67 @@ effectiveSize(theta)
 
 
 #### Gelman-Rubin 
+This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. 
+
+```{r}
+# sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
+# sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
+# 
+# M <- 55000
+# burnin <- floor(M/10) # after, should become stationary
+
+MetropMu <- rep(NA,M)
+MetropMu[1] <- Estimated_mu_Fl # MLE
+n_accept_mu<-0 # it's a counter of the number of accepted samples
+mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+
+MetropPhi <- rep(NA,M)
+MetropPhi[1] <- Estimated_phi_Fl # MLE
+n_accept_Phi<-0
+phi_factor <- 2.75
+
+for (i in 2:M){
+  mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
+  phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
+  
+  theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
+  theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit...
+  
+  theta_current <- c(MetropMu[i-1], MetropPhi[i-1])
+  
+  prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
+  accept_mu <- (runif(1)<=prob_mu)
+  if (accept_mu){
+    MetropMu[i] <- mu_prop
+    n_accept_mu <- n_accept_mu + 1
+  } else {
+    MetropMu[i] <- MetropMu[i-1]
+  }
+  
+  prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
+  accept_phi <- (runif(1)<=prob_phi)
+  if (accept_phi){
+    MetropPhi[i] <- phi_prop
+    n_accept_Phi <- n_accept_Phi + 1
+  } else {
+    MetropPhi[i] <- MetropPhi[i-1]
+  }
+  
+}
+
+theta_before_removing_burning <- cbind(MetropMu, MetropPhi)
+
+# Exclude burnin
+MetropMu = MetropMu[-c(1:burnin)]
+MetropPhi = MetropPhi[-c(1:burnin)]
+
+theta <- cbind(MetropMu, MetropPhi)
+accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
+cat("Acceptance rate for mu: ",accept_rate_mu,"\n") 
+
+accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
+cat("Acceptance rate for phi: ",accept_rate_phi,"\n") 
+```
 
 
 ### Geweke diagnostic
@@ -665,8 +726,8 @@ abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col=4, lty=2)
 ```{r}
 # Encore à faire, là ça fait de la merde
 library(kableExtra)
-kable(as.data.frame(matrix(data=cbind(HPDmu_metrop_Fl, CImu_Fl,HPDIntervals_Laplace_Fl, QuantileCI_Laplace_Fl) 
-                           , nrow = 2)))
+# kable(as.data.frame(matrix(data=cbind(HPDmu_metrop_Fl, CImu_Fl,HPDIntervals_Laplace_Fl, QuantileCI_Laplace_Fl) 
+#                            , nrow = 2)))
 ```
 
 
