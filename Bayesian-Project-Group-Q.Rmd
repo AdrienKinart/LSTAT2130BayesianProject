@@ -684,6 +684,46 @@ library(kableExtra)
 
 # Question 6 : same question as 5 but with JAGS
 
+```{r}
+require(R2WinBUGS)
+require(coda)
+require(rjags)
+
+metro_model = function(){
+  # I don't know what to write here
+  
+  # Priors
+  mu ~ dnorm(3000, 1/pow(306.12, 2)) # in terms of tau (precision)
+  phi ~ dunif(0, 10)
+
+  # Likelihood ?
+  
+  # ???
+  
+}
+
+model.file = "metro_1.bug"
+write.model(metro_model, model.file)
+
+# Data and initial values for model parameters
+mydata = list()
+inits = list(list(mu=2915, phi=0.472))
+
+# Model specification
+foo = jags.model(file=model.file, inits=inits,data=mydata, n.chains=1)
+update(foo, 1000)
+
+# Generation of the chain
+out = coda.samples(model=foo,
+                   c("mu", "phi"),
+                   n.iter=10000)
+out.matrix = as.matrix(out)
+summary(out.matrix)
+traceplot(out)
+```
+
+
+
 <!------>
 \appendix
 
