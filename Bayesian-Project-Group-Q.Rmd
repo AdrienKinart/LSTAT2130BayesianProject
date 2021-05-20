@@ -374,18 +374,16 @@ $$
 ```{r}
 lpost <- function(theta,freq){
   Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, Inf) # length =11. J'ai rajouté INFINI
-
   mu <- theta[1] ; phi <- theta[2]
   kappa <- 1/phi ; lambda <- 1/(phi*mu)
   n <- length(freq)
-  
   # intialisation
   LL <- 0
   
   for (i in 1:n) {
     LL <- LL + freq[i] *log(pgamma(Intervals[i+1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))}
-
-  logPost <- LL -(1/(2*sigma_prior^2))*(mu- mu_prior)^2
+  
+  logPost <-  LL + dnorm(mu, mean = mu_prior , sd = sigma_prior, log=T)   +  dunif(phi, min=0, max=10, log = T) # /!\ mu_prior et sigma_prior doivent avoir été determiné plus haut
   return(logPost)
 }
 ```
@@ -405,7 +403,7 @@ Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is
 Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=Laplace%20Approximation%20of%20Posterior%20Distributions&text=Laplace%20approximation%20is%20a%20method,the%20posterior%20at%20the%20mode. 
 
 ```{r}
-inits <- c(mu = mu_prior , phi = 0.01)
+inits <- c(mu = Estimated_mu_Fl , phi = Estimated_phi_Fl)
 ```
 
 ### Flanders
@@ -488,7 +486,7 @@ $$
 $$ 
 also follows a normal distribution. See \href{https://paolomaccallini.com/2018/06/20/bivariate-normal-distribution/}{here}. Hence, for $\mu$, one has: 
 
-$$\mu|D \sim N(E(\mu),\sigma_\mu) $$
+$$\mu|D \si= N(E(\mu),\sigma_\mu) $$
 We needs that $95\%$ of the marginal posterior to fall into the interval for Flanders:
 ```{r}
 alpha <- 0.05
@@ -526,73 +524,68 @@ That being, this gives the following algorithm:
 
 
 ```{r}
-# Starting value for mu and and phi defined earlier ==> defined using MLE: (Estimated_mu_Fl,Estimated_phi_Fl)
+metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies) {
+  thetas = array(dim = c(M + 1, 2), dimnames = list(NULL, c("mu", "phi")))
+  thetas[1, ] = unlist(theta)
+  
+  accepted = c(mu = 0, phi = 0)
+  sigma_mu = factors[2] * sd.propositions[1]
+  sigma_phi = factors[2] * sd.propositions[2]
+  for (i in 2:(M + 1)) {
+    theta_mu = theta_phi = this_theta = thetas[i - 1, ]
+    theta_mu[1] = this_theta[1] + rnorm(1, 0, sigma_mu)
+    theta_phi[2] = this_theta[2] + rnorm(1, 0, sigma_phi)
+    thresholds = c(mu = min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)), 1),
+                  phi = min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)), 1))
+    
+    accepts = runif(2) <= thresholds
+    thetas[i, ] = this_theta
+    if (accepts[1])
+      thetas[i, 1] = theta_mu[1]
+    if (accepts[2])
+      thetas[i, 2] = theta_phi[2]
+    accepted = accepted + as.integer(accepts) # as.integer()
+  }
+  return(list(theta = thetas, accept_rate = accepted / (M)))
+}
+```
+
+
+```{r}
 # Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
 sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
 sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
+M <- 60000
+```
 
-M <- 55000
-burnin <- floor(M/10) # after, should become stationary
 
-MetropMu <- rep(NA,M)
-MetropMu[1] <- Estimated_mu_Fl # MLE
-n_accept_mu<-0 # it's a counter of the number of accepted samples
-mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
+```{r Metrop1}
+#using starting values as Estimated_mu_Fl and Estimated_phi_Fl that are chosen via MLE
+metro_fl1 = metropolis_algorithm(M, theta=c(mu=3089.94396, phi=0.399687),
+                                sd.propositions = c(mu=sd_hat_of_mu, phi=sd_hat_of_phi),
+                                factors=c(mu=2.75, phi=2.75),
+                                frequencies = Table[1,])
+```
 
-MetropPhi <- rep(NA,M)
-MetropPhi[1] <- Estimated_phi_Fl # MLE
-n_accept_Phi<-0
-phi_factor <- 2.75
 
-for (i in 2:M){
-  mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
-  phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
-  
-  theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
-  theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit...
-  
-  theta_current <- c(MetropMu[i-1], MetropPhi[i-1])
-  
-  prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
-  accept_mu <- (runif(1)<=prob_mu)
-  if (accept_mu){
-    MetropMu[i] <- mu_prop
-    n_accept_mu <- n_accept_mu + 1
-  } else {
-    MetropMu[i] <- MetropMu[i-1]
-  }
-  
-  prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
-  accept_phi <- (runif(1)<=prob_phi)
-  if (accept_phi){
-    MetropPhi[i] <- phi_prop
-    n_accept_Phi <- n_accept_Phi + 1
-  } else {
-    MetropPhi[i] <- MetropPhi[i-1]
-  }
-  
-}
 
-theta_before_removing_burning <- cbind(MetropMu, MetropPhi)
+```{r}
+acceptance_rate_mu_Metrop1 <- metro_fl1$accept_rate["mu"]*100
+cat("Acceptance rate for mu: ",acceptance_rate_mu_Metrop1,"% \n") 
 
-# Exclude burnin
-MetropMu = MetropMu[-c(1:burnin)]
-MetropPhi = MetropPhi[-c(1:burnin)]
-
-theta <- cbind(MetropMu, MetropPhi)
-accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
-cat("Acceptance rate for mu: ",accept_rate_mu,"\n") 
-
-accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
-cat("Acceptance rate for phi: ",accept_rate_phi,"\n") 
+acceptance_rate_phi_Metrop1 <- metro_fl1$accept_rate["phi"]*100
+cat("Acceptance rate for mu: ",acceptance_rate_phi_Metrop1,"% \n") 
 
 ```
 
 ```{r}
-plot(MetropMu, MetropPhi, xlab = 'mu', ylab = 'phi')
+# Remove bur-in samples
+thetasM1 <-  tail(metro_fl1$theta, (-0.1*M))
+
+plot(thetasM1[,1], thetasM1[,2], xlab = 'mu', ylab = 'phi')
 library(MASS)
 library(plotly)
-den3d <- kde2d(theta[,1], theta[,2])
+den3d <- kde2d(thetasM1[,1], thetasM1[,2])
 plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
 ```
 
@@ -603,108 +596,65 @@ plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
 The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
 ```{r}
 par(mfrow=c(2,1))
-traceplot(as.mcmc(theta))
+traceplot(as.mcmc(thetasM1))
 ```
 By doing so, one sees that the mixing seems pretty good. For example, the autocorrelation is significative up to not a too high order. As such, the parameter space of $theta$ does not seem to be visited to slowly. 
 ```{r}
 par(mfrow=c(2,1))
-acf((theta[,1]), lag.max = 30)
-pacf((theta[,1]), lag.max = 30)
-acf((theta[,2]), lag.max = 30)
-pacf((theta[,2]), lag.max = 30)
+acf((metro_fl1$theta[,1]), lag.max = 30)
+pacf((metro_fl1$theta[,1]), lag.max = 30)
+acf((metro_fl1$theta[,2]), lag.max = 30)
+pacf((metro_fl1$theta[,2]), lag.max = 30)
 ```
-Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autcorrelation. 
+Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autocorrelation. 
 ```{r}
-effectiveSize(theta)
+# out of 48 000 observations
+effectiveSize(thetasM1)
 ```
 
 
 
 #### Gelman-Rubin 
-This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. 
+This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. As a second chain, more exotic  values (but still possible , a priori) are proposed for initialization: $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 1000 generations.
+```{r}
+metro_fl2 = metropolis_algorithm(60000, theta=c(mu=4000, phi= 0.1),
+                                sd.propositions = c(mu=sd_hat_of_mu, phi=sd_hat_of_phi),
+                                factors=c(mu=2.75, phi=2.75),
+                                frequencies = Table[1,])
+```
 
 ```{r}
-# sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
-# sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
-# 
-# M <- 55000
-# burnin <- floor(M/10) # after, should become stationary
-
-MetropMu <- rep(NA,M)
-MetropMu[1] <- Estimated_mu_Fl # MLE
-n_accept_mu<-0 # it's a counter of the number of accepted samples
-mu_factor <- 2.75 # multiply the var-cov matric ==> influence the acceptance ratethat we want to be 23%
-
-MetropPhi <- rep(NA,M)
-MetropPhi[1] <- Estimated_phi_Fl # MLE
-n_accept_Phi<-0
-phi_factor <- 2.75
-
-for (i in 2:M){
-  mu_prop <- MetropMu[i-1] + rnorm(1,0,mu_factor*sd_hat_of_mu)
-  phi_prop <- MetropPhi[i-1] + rnorm(1,0,phi_factor*sd_hat_of_phi)
-  
-  theta_propMu <- c(mu_prop,MetropPhi[i-1]) #dernier disponible
-  theta_propPhi <- c(MetropMu[i-1], phi_prop) #MetropMu[i-1] ou MetropMu[i] à utiliser? Le dernier est dispo en soit...
-  
-  theta_current <- c(MetropMu[i-1], MetropPhi[i-1])
-  
-  prob_mu <- min(1,exp(lpost(theta_propMu, freq = t(Table[1,]) )-lpost(theta_current, freq = t(Table[1,]))))
-  accept_mu <- (runif(1)<=prob_mu)
-  if (accept_mu){
-    MetropMu[i] <- mu_prop
-    n_accept_mu <- n_accept_mu + 1
-  } else {
-    MetropMu[i] <- MetropMu[i-1]
-  }
-  
-  prob_phi <- min(1,exp(lpost(theta_propPhi, freq = t(Table[1,]) )- lpost(theta_current, freq = t(Table[1,]))))
-  accept_phi <- (runif(1)<=prob_phi)
-  if (accept_phi){
-    MetropPhi[i] <- phi_prop
-    n_accept_Phi <- n_accept_Phi + 1
-  } else {
-    MetropPhi[i] <- MetropPhi[i-1]
-  }
-  
-}
-
-theta_before_removing_burning <- cbind(MetropMu, MetropPhi)
-
-# Exclude burnin
-MetropMu = MetropMu[-c(1:burnin)]
-MetropPhi = MetropPhi[-c(1:burnin)]
-
-theta <- cbind(MetropMu, MetropPhi)
-accept_rate_mu <- paste0(round(n_accept_mu/(M-1),digits=2)*100,"%")
-cat("Acceptance rate for mu: ",accept_rate_mu,"\n") 
-
-accept_rate_phi <- paste0(round(n_accept_Phi/(M-1),digits=2)*100,"%")
-cat("Acceptance rate for phi: ",accept_rate_phi,"\n") 
+par(mfrow=c(2,1))
+traceplot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
 ```
+It seems that convergence occurs rather quickly. After a early generations, the chains seem to have similar mean variance. This can be more formally assessed with the Gelman-Rubin statistic that one wishes to be smaller that, say, $1.1$. Here below is shown the estimated statistic along with its upper bond. 
+```{r}
+gelman.diag(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
+```
+Those are clearly below, which is a good sign of convergence. To see when convergence may have occured, one could look at the statistic with respect to the number of generations. Here below are presented the statistics, up to 2000 samples:
+```{r}
+gelman.plot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
+abline(h=1.1, col='green')
+```
+Accordingly, the convergence seems to occurs after roughly 1500 observations for both parameters. 
+
 
 
 ### Geweke diagnostic
-The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, repsectively:
+The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, respectively:
 
 ```{r}
-geweke.diag(mcmc((theta)))
-par(mfrow=c(2,1))
+geweke.diag(mcmc((thetasM1)))
 ```
 
 To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
 
 ```{r}
-geweke.plot(mcmc((theta)), nbins = 50)
+par(mfrow=c(2,1))
+geweke.plot(mcmc((thetasM1)), nbins = 50)
 ```
 
 Except for one in $\phi$, the hypothesis of same mean in never rejected. There is still no proof of non convergence of the generated chains. 
-
-### Additional diagnostics
-```{r}
-heidel.diag(theta)
-raftery.diag(theta)
-```
 
 
 ## (c) Credible intervals for mu1
