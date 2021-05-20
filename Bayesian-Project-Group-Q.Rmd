@@ -389,6 +389,7 @@ lpost <- function(theta,freq){
 ```
 
 ```{r}
+#juste un check pour voir si ça ne fait pas de la merde
 lpost(c(Estimated_mu_Fl, Estimated_phi_Fl), t(Table[1,]))
 lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
 ```
@@ -402,13 +403,11 @@ Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is
 
 Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=Laplace%20Approximation%20of%20Posterior%20Distributions&text=Laplace%20approximation%20is%20a%20method,the%20posterior%20at%20the%20mode. 
 
-```{r}
-inits <- c(mu = Estimated_mu_Fl , phi = Estimated_phi_Fl)
-```
 
 ### Flanders
 ```{r}
-fit_Fl <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
+inits_Fl <- c(mu = Estimated_mu_Fl , phi = Estimated_phi_Fl)
+fit_Fl <- optim(inits_Fl, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
 param_mean_Fl <- fit_Fl$par
 param_cov_mat_Fl <- solve(-fit_Fl$hessian)
 round(param_mean_Fl, 2)
@@ -426,7 +425,8 @@ plot(density(samples_Fl[,2]), main = 'laplace approximation for phi in Flanders'
 ### Wallonia
 
 ```{r}
-fit_Wal <- optim(inits, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
+inits_Wal <- c(mu = Estimated_mu_Wal , phi = Estimated_phi_Wal)
+fit_Wal <- optim(inits_Wal, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
 param_mean_Wal <- fit_Wal$par
 param_cov_mat_Wal <- solve(-fit_Wal$hessian)
 round(param_mean_Wal, 2)
@@ -503,7 +503,6 @@ legend("topleft", legend=c("HPD", "quantile-based"),
 abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col="red", lty=1)
 abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col="green", lty=2)
 ```
-Il faut encore faire pour phi de la Flandre
 
 # Question 5
 
