@@ -449,9 +449,9 @@ round(param_cov_mat_Fl, 3)
 
 ```{r}
 library(mvtnorm)
-samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
-plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
-plot(density(samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
+laplace_samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
+plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
+plot(density(laplace_samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
 ```
 
 
@@ -481,12 +481,12 @@ levels <- c(0.1,0.25)
 The credible region is given here below: 
 
 ```{r}
-plot(x =samples_Fl[,1] , y = samples_Fl[,2] , xlab = 'mu', ylab='phi', pch='.')
+plot(x =laplace_samples_Fl[,1] , y = laplace_samples_Fl[,2] , xlab = 'mu', ylab='phi', pch='.')
 x1 <- seq(3400,4000,length=1000)
 y1 <- seq(0.16,0.26, length=1000)
 lpostFl_laplaceApprox <- function(MyMu,MyPhi){ #theta_l = c(mu,phi)
   MuPhi <-  cbind(MyMu,MyPhi)
-  dmvnorm(MuPhi, colMeans(samples_Fl), cov(samples_Fl), log=TRUE)
+  dmvnorm(MuPhi, colMeans(laplace_samples_Fl), cov(laplace_samples_Fl), log=TRUE)
 }
 
 z1 <- outer(x1,y1,lpostFl_laplaceApprox)
@@ -498,7 +498,7 @@ contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-l
 ```{r}
 library(MASS)
 library(plotly)
-den3dLaplaceApprox <- kde2d(samples_Fl[,1], samples_Fl[,2])
+den3dLaplaceApprox <- kde2d(laplace_samples_Fl[,1], laplace_samples_Fl[,2])
 plot_ly(x=den3dLaplaceApprox$x, y=den3dLaplaceApprox$y, z=den3dLaplaceApprox$z) %>% add_surface()
 ```
 
@@ -529,7 +529,7 @@ QuantileCI_Laplace_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/
 # HPD intervals 
 HPDIntervals_Laplace_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
 
-plot(density(samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
+plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
 legend("topleft", legend=c("HPD", "quantile-based"),
        col=c("red", "green"), lty=1:2)
 
@@ -578,8 +578,8 @@ metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies)
     theta_phi[2] = this_theta[2] + rnorm(1, 0, sigma_phi)
     
     thresholds = c(
-      min(exp(lpost2(theta_mu, frequencies) - lpost2(this_theta, frequencies)),1),
-      min(exp(lpost2(theta_phi, frequencies) - lpost2(this_theta, frequencies)),1)
+      min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)),1),
+      min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)),1)
     )
 
     accepts = runif(2) <= thresholds
@@ -601,7 +601,7 @@ metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies)
 
 
 ```{r}
-# Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(samples_Fl)
+# Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(laplace_samples_Fl)
 sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
 sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
 M <- 60000
@@ -747,13 +747,11 @@ require(rjags)
 
 ```{r jags_model_definition}
 metro_model = function(){
-  
   kappa <- 1/phi
   lambda <- 1/(phi*mu)
   
   for (i in 1:10){
-    pi[i] <- pgamma(intervals[i+1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)
-  }
+    pi[i] <- pgamma(intervals[i+1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)}
   
   # Likelihood
   y ~ dmulti(pi, n)
@@ -761,7 +759,6 @@ metro_model = function(){
   # Priors
   mu ~ dnorm(3000, pow(306.12,-2))
   phi ~ dunif(0, 10)
-
 }
 
 model.file = "resources/metropolis.bug"
@@ -769,12 +766,12 @@ write.model(metro_model, model.file)
 ```
 
 
-```{r jags_model_execution}
+```{r jags_model_executionFlanders}
 model.file = "resources/metropolis.bug"
 
 # Test with Flanders
 jags_fl = jags.model(file=model.file, 
-                 inits=list(list(mu=3090, phi=0.4)), 
+                 inits=list(list(mu=3089.94396, phi=0.399687)), 
                  data=list(n=803, intervals=intervals, y = Table[1,]), 
                  n.chains=1)
 
@@ -785,6 +782,46 @@ out_fl.matrix = as.matrix(out_fl)
 summary(out_fl.matrix)
 
 traceplot(out_fl)
+```
+
+```{r}
+plot(density(out_fl.matrix[,"mu"]), main= "Comparison R metropolis, Laplace and JAGS distribution for mu", lty=2)
+lines(density(thetasM1[,1]), col='red', lty=2)
+lines(density(laplace_samples_Fl[,1]), col='blue', lty=2)
+
+plot(density(out_fl.matrix[,"phi"]), main= "Comparison R metropolis, Laplace and JAGS distribution for phi", lty=2)
+lines(density(thetasM1[,2]), col='red', lty=2)
+lines(density(laplace_samples_Fl[,2]), col='blue', lty=2)
+```
+
+# Question 7: same but for Wallonia 
+```{r jags_model_executionWaallonia}
+model.file = "resources/metropolis.bug"
+
+# Test with Wallonia
+jags_wal = jags.model(file=model.file, 
+                 inits=list(list(mu=2914.882, phi=0.471615)), 
+                 data=list(n=425, intervals=intervals, y = Table[2,]), 
+                 n.chains=1)
+
+update(jags_wal, 1000)
+
+out_wal = coda.samples(model=jags_wal, c("mu", "phi"), n.iter=50000)
+out_wal.matrix = as.matrix(out_wal)
+summary(out_wal)
+```
+
+```{r}
+traceplot(out_wal)
+```
+
+# Question 8: Credible interval for means difference
+```{r}
+diff_of_mu <- out_fl.matrix[,1] - out_wal.matrix[,1]
+plot(density(diff_of_mu), main = "Credibles intervals for the difference of Net Income between Flanders and Wallonia", xlab = 'mu_1 - mu_2')
+legend("topleft", legend = c("Quantile-based intervals", "HPD intervals"), col = 1:2 , lty=1:2)
+abline(v=quantile(diff_of_mu, probs=c(0.025,0.975), col= 'red' , lty=2))
+abline(v= HPDinterval(as.mcmc(diff_of_mu)), col=2, lty=2)
 ```
 
 
