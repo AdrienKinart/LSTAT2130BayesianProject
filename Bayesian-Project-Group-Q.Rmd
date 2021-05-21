@@ -45,6 +45,8 @@ output:
     template: template/markdown.tex
     toc: true
     toc_depth: 3
+    
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
@@ -68,7 +70,6 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-
 ```{r}
 library(EnvStats)
 library(mnormt)
@@ -82,7 +83,7 @@ Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
 rownames(Table) <- c("Flanders", "Wallonia") 
 colnames(Table) <- c("<1200", "[1200-1500)", "1500-1800", "1800-2300", "2300-2700",
                      "2700-3300", "3300-4000", "4000-4900", "4900-6000", ">6000")
-Intervals <- c(1200,1500,1800, 2300,2700,3300,4000,4900,6000)
+Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, 1e10)
 
 NbFlemish <-  sum(Table[1,])
 NbWaWalloons <-sum(Table[2,])  
@@ -373,7 +374,7 @@ $$
 
 
 ```{r}
-lpost <- function(theta,freq){
+lpostold <- function(theta,freq){
   Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, Inf) # length =11. J'ai rajouté INFINI
   mu <- theta[1] ; phi <- theta[2]
   kappa <- 1/phi ; lambda <- 1/(phi*mu)
@@ -387,10 +388,41 @@ lpost <- function(theta,freq){
   logPost <-  LL + dnorm(mu, mean = mu_prior , sd = sigma_prior, log=T)   +  dunif(phi, min=0, max=10, log = T) # /!\ mu_prior et sigma_prior doivent avoir été determiné plus haut
   return(logPost)
 }
+
+# Intervals of the frequency table
+intervals = c(0, 1200,1500,1800,2300,2700,3300,4000,4900,6000, Inf)
+
+# Utility function to compute the prob of being between high and low
+pgammadiff = function(low, high, kappa, lambda){
+  pgamma(high, kappa, lambda) - pgamma(low, kappa, lambda)
+}
+
+# Utility fonctions (already defined in the setup)
+kappa = function(phi){1/phi}
+lambda = function(phi, mu) {1/(phi*mu)}
+
+mu_prior = 3000
+sigma_prior = 306.12
+lpost = function(theta, freq){
+  # Transform mu and phi -> kappa and lambda
+  kappa = kappa(theta[2])
+  lambda = lambda(theta[2], theta[1])
+  
+  # Likelihood : sum_j^n[x_j * ln(probability_of_being_in_interval_j)]
+  LL = sum(sapply(1:length(freq), function (j){
+      freq[j] * log(pgammadiff(low=intervals[j], high=intervals[j+1], kappa, lambda))
+  }))
+  
+  # Log posterior
+  lpi = dnorm(theta[1], mu_prior, sigma_prior, log=T) + dunif(theta[2], 0, 10, log=T)
+  lpost = LL + lpi
+  
+  names(lpost) = "lpost"
+  return(lpost)
+}
 ```
 
 ```{r}
-#juste un check pour voir si ça ne fait pas de la merde
 lpost(c(Estimated_mu_Fl, Estimated_phi_Fl), t(Table[1,]))
 lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
 ```
@@ -514,39 +546,56 @@ That being, this gives the following algorithm:
 
 1. $t=0$: Set starting values of the parameters of interest to their MLE: $\theta_0 := (\hat{\mu}_{MLE},\hat{\phi}_{MLE})$
 2. for $t=2,3,.. 55 000$    
-    + Draw $\mu_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\mu_{\text{prop}} \sim N(\mu_{t-1} ,f_1 \hat{\sigma}_\mu) $. The candidate is then $\theta^\mu_{prop} := (\mu_{\text{prop}}, \phi_{t-1} )$
+    + Draw $\mu_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\mu_{\text{prop}} \sim N(\mu_{t-1} ,f_1 \hat{\sigma}_\mu)$. The candidate is then $\theta^\mu_{prop} := (\mu_{\text{prop}}, \phi_{t-1} )$
     + Compute $prob_\mu= \min{\Big(1,\exp\big(h(\theta^\mu_{prop})- h(\theta_{t-1}\big) \Big)}$
     + Set $\mu_t = \mu_{\text{prop}}$ with probability $prob_\mu$, $\mu_t = \mu_{t-1}$ otherwise.
-    + Draw $\phi_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\phi_{\text{prop}} \sim N(\phi_{t-1} ,f_2 \hat{\sigma}_\phi) $. The candidate is then $\theta^\phi_{prop} := (\mu_{t-1}, \phi_{\text{prop}})$
+    + Draw $\phi_{\text{prop}}$ from a normal distribution centered on value derived at $t-1$, i.e.  $\phi_{\text{prop}} \sim N(\phi_{t-1} ,f_2 \hat{\sigma}_\phi)$. The candidate is then $\theta^\phi_{prop} := (\mu_{t-1}, \phi_{\text{prop}})$
     + Compute $prob= \min{\Big(1,\exp\big(h(\theta^\phi_{prop})- h(\theta_{t-1}\big) \Big)}$
     + Set $\phi_t = \phi_{\text{prop}}$ with probability $prob_\phi$, $\phi_t = \phi_{t-1}$ otherwise.
     + Set $\theta_t = (\mu_t, \phi_t)$
 
 
 ```{r}
-metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies) {
-  thetas = array(dim = c(M + 1, 2), dimnames = list(NULL, c("mu", "phi")))
-  thetas[1, ] = unlist(theta)
+metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies){
   
-  accepted = c(mu = 0, phi = 0)
-  sigma_mu = factors[2] * sd.propositions[1]
-  sigma_phi = factors[2] * sd.propositions[2]
-  for (i in 2:(M + 1)) {
-    theta_mu = theta_phi = this_theta = thetas[i - 1, ]
+  theta = as.vector(theta)
+  sd.propositions = as.vector(sd.propositions)
+  factors = as.vector(factors)
+  frequencies = as.vector(frequencies)
+
+  thetas = array(dim=c(M+1,2))
+  thetas[1,] = theta
+
+  accepted = c(0,0)
+  
+  sigma_mu = factors[2]*sd.propositions[1]
+  sigma_phi = factors[2]*sd.propositions[2]
+  
+  for (i in 2:(M+1)){
+    theta_mu = theta_phi = this_theta = thetas[i-1,]
+    
     theta_mu[1] = this_theta[1] + rnorm(1, 0, sigma_mu)
     theta_phi[2] = this_theta[2] + rnorm(1, 0, sigma_phi)
-    thresholds = c(mu = min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)), 1),
-                  phi = min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)), 1))
     
+    thresholds = c(
+      min(exp(lpost2(theta_mu, frequencies) - lpost2(this_theta, frequencies)),1),
+      min(exp(lpost2(theta_phi, frequencies) - lpost2(this_theta, frequencies)),1)
+    )
+
     accepts = runif(2) <= thresholds
-    thetas[i, ] = this_theta
-    if (accepts[1])
-      thetas[i, 1] = theta_mu[1]
-    if (accepts[2])
-      thetas[i, 2] = theta_phi[2]
-    accepted = accepted + as.integer(accepts) # as.integer()
+    
+    thetas[i,] = this_theta
+    if(accepts[1]) thetas[i,1] = theta_mu[1]
+    if(accepts[2]) thetas[i,2] = theta_phi[2]
+    
+    accepted = accepted + as.integer(accepts)
   }
-  return(list(theta = thetas, accept_rate = accepted / (M)))
+  
+  thetas = thetas[,-0.1*M]
+  
+  names(thetas) = c("mu", "phi")
+  names(accepted) = c("mu", "phi")
+  return(list(theta=thetas, accept_rate=accepted/M))
 }
 ```
 
@@ -574,7 +623,7 @@ acceptance_rate_mu_Metrop1 <- metro_fl1$accept_rate["mu"]*100
 cat("Acceptance rate for mu: ",acceptance_rate_mu_Metrop1,"% \n") 
 
 acceptance_rate_phi_Metrop1 <- metro_fl1$accept_rate["phi"]*100
-cat("Acceptance rate for mu: ",acceptance_rate_phi_Metrop1,"% \n") 
+cat("Acceptance rate for phi: ",acceptance_rate_phi_Metrop1,"% \n") 
 
 ```
 
@@ -615,7 +664,9 @@ effectiveSize(thetasM1)
 
 
 #### Gelman-Rubin 
+
 This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. As a second chain, more exotic  values (but still possible , a priori) are proposed for initialization: $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 1000 generations.
+
 ```{r}
 metro_fl2 = metropolis_algorithm(60000, theta=c(mu=4000, phi= 0.1),
                                 sd.propositions = c(mu=sd_hat_of_mu, phi=sd_hat_of_phi),
@@ -627,20 +678,26 @@ metro_fl2 = metropolis_algorithm(60000, theta=c(mu=4000, phi= 0.1),
 par(mfrow=c(2,1))
 traceplot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
 ```
+
 It seems that convergence occurs rather quickly. After a early generations, the chains seem to have similar mean variance. This can be more formally assessed with the Gelman-Rubin statistic that one wishes to be smaller that, say, $1.1$. Here below is shown the estimated statistic along with its upper bond. 
+
 ```{r}
 gelman.diag(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
 ```
-Those are clearly below, which is a good sign of convergence. To see when convergence may have occured, one could look at the statistic with respect to the number of generations. Here below are presented the statistics, up to 2000 samples:
+
+Those are clearly below, which is a good sign of convergence. To see when convergence may have occurred, one could look at the statistic with respect to the number of generations. Here below are presented the statistics, up to 2000 samples:
+
 ```{r}
 gelman.plot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
 abline(h=1.1, col='green')
 ```
+
 Accordingly, the convergence seems to occurs after roughly 1500 observations for both parameters. 
 
 
 
 ### Geweke diagnostic
+
 The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, respectively:
 
 ```{r}
@@ -662,9 +719,9 @@ Except for one in $\phi$, the hypothesis of same mean in never rejected. There i
 ```{r}
 ## FOR mu in Flanders
 
-HPDmu_metrop_Fl<- HPDinterval(as.mcmc((theta)))[1,]
-CImu_Fl <- quantile(theta[,1], probs = c(alpha/2,1-alpha/2))
-densplot(as.mcmc((theta[,1])), main = "Comparison between Metropolis and Laplace approximation for mu in Flanders" )
+HPDmu_metrop_Fl<- HPDinterval(as.mcmc((thetasM1)))[1,]
+CImu_Fl <- quantile(thetasM1[,1], probs = c(alpha/2,1-alpha/2))
+densplot(as.mcmc((thetasM1[,1])), main = "Comparison between Metropolis and Laplace approximation for mu in Flanders" )
 legend("topleft", legend = c("HPD metropolis", "Quantiles Metropolis", "Laplace HPD", "Laplace quantiles"),
        col=1:4, lty=c(1,1,2,2))
 abline(v=c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col=1)
@@ -680,48 +737,55 @@ library(kableExtra)
 #                            , nrow = 2)))
 ```
 
-
-
 # Question 6 : same question as 5 but with JAGS
 
 ```{r}
 require(R2WinBUGS)
 require(coda)
 require(rjags)
-
-metro_model = function(){
-  # I don't know what to write here
-  
-  # Priors
-  mu ~ dnorm(3000, 1/pow(306.12, 2)) # in terms of tau (precision)
-  phi ~ dunif(0, 10)
-
-  # Likelihood ?
-  
-  # ???
-  
-}
-
-model.file = "metro_1.bug"
-write.model(metro_model, model.file)
-
-# Data and initial values for model parameters
-mydata = list()
-inits = list(list(mu=2915, phi=0.472))
-
-# Model specification
-foo = jags.model(file=model.file, inits=inits,data=mydata, n.chains=1)
-update(foo, 1000)
-
-# Generation of the chain
-out = coda.samples(model=foo,
-                   c("mu", "phi"),
-                   n.iter=10000)
-out.matrix = as.matrix(out)
-summary(out.matrix)
-traceplot(out)
 ```
 
+```{r jags_model_definition}
+metro_model = function(){
+  
+  kappa <- 1/phi
+  lambda <- 1/(phi*mu)
+  
+  for (i in 1:10){
+    pi[i] <- pgamma(intervals[i+1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)
+  }
+  
+  # Likelihood
+  y ~ dmulti(pi, n)
+  
+  # Priors
+  mu ~ dnorm(3000, pow(306.12,-2))
+  phi ~ dunif(0, 10)
+
+}
+
+model.file = "resources/metropolis.bug"
+write.model(metro_model, model.file)
+```
+
+
+```{r jags_model_execution}
+model.file = "resources/metropolis.bug"
+
+# Test with Flanders
+jags_fl = jags.model(file=model.file, 
+                 inits=list(list(mu=3090, phi=0.4)), 
+                 data=list(n=803, intervals=intervals, y = Table[1,]), 
+                 n.chains=1)
+
+update(jags_fl, 1000)
+
+out_fl = coda.samples(model=jags_fl, c("mu", "phi"), n.iter=50000)
+out_fl.matrix = as.matrix(out_fl)
+summary(out_fl.matrix)
+
+traceplot(out_fl)
+```
 
 
 <!------>

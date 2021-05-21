@@ -39,7 +39,8 @@ vignettes/*.pdf
 *.bcf
 *.aux
 *.out
-Project.md
+Bayesian-Project-Group-Q.md
+Bayesian-Project-Group-Q.tex
 
 # R Environment Variables
 .Renviron
@@ -49,3 +50,4 @@ Project.md
 
 # Personal test file
 lioche.Rmd
+SimonCode.R

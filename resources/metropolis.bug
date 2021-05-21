@@ -1,0 +1,12 @@
+model
+{
+    kappa <- 1/phi
+    lambda <- 1/(phi * mu)
+    for (i in 1:10) {
+        pi[i] <- pgamma(intervals[i + 1], kappa, lambda) - pgamma(intervals[i], 
+            kappa, lambda)
+    }
+    y ~ dmulti(pi, n)
+    mu ~ dnorm(3000, pow(306.12, -2))
+    phi ~ dunif(0.00000E+00, 10)
+}
