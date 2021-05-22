@@ -52,7 +52,7 @@ always_allow_html: true
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   cache = TRUE,
-  echo = T,
+  echo = F,
   eval = T,	
   	
   warning = F,	
@@ -68,13 +68,60 @@ knitr::opts_chunk$set(
 )	
 ```
 
-# Introduction
+# Introduction {.unlisted .unnumbered}
 
 ```{r}
 library(EnvStats)
 library(mnormt)
 library(coda)
 ```
+
+
+In this work, the Net Monthly Income (HNI) of household older than 30 years is studied across the two Belgian regions. These regions are denoted by \(k=\{1,2\}\) with respect to Flanders and Wallonia, respectively. The 1228 households were listed with respect to 10 income intervals. The detailed frequency table is given below:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rccccccccccr}
+\multicolumn{1}{c}{} &
+  \multicolumn{10}{c}{Net monthly household income (in euros)} &
+  \multicolumn{1}{c}{} \\ \cline{2-11}
+    Region &
+    \rotatebox{90}{<1200} &
+    \rotatebox{90}{[1200, 1500)} &
+    \rotatebox{90}{[1500,1800)} &
+    \rotatebox{90}{[1800,2300)} &
+    \rotatebox{90}{[2300,2700)} &
+    \rotatebox{90}{[2700,3300)} &
+    \rotatebox{90}{[3300,4000)} &
+    \rotatebox{90}{[4000,4900)} &
+    \rotatebox{90}{[4900,6000)} &
+    \rotatebox{90}{$\ge$6000} &
+    Total \\ \hline
+    Flanders & 25 & 69 & 65 & 106 & 80 & 106 & 136 & 94 & 76 & 46 & 803 \\
+    Wallonia & 17 & 36 & 47 & 58  & 47 & 53  & 59  & 54 & 33 & 21 & 425
+\end{tabular}
+\caption{Frequency table of the survey}
+\end{table}
+
+Let \(X\) be the HNI regardless the 2 regions , it is assumed it follows a Gamma distribution with parameters $\kappa$ and $\lambda$. It can be reparametrised in terms of its mean \(\mu\) and dispersion parameter \(\phi\) with the following trick:
+$$
+\begin{split}
+\text{shape: } \kappa & = \frac{1}{\phi} \\
+\text{rate: } \lambda & = \frac{1}{\phi\; \mu}
+\end{split}
+$$
+By assuming the gamma distribution, one can plot their experimental histogram and plot the theoretical density plot by estimating the shape and rate parameters with Maximum of Likelihood. This allows to get a first sight on the data behaviour at hand.
+
+\begin{table}[h]
+\centering
+\caption {Estimated $\mu$ and $\phi$ for Flanders and Wallonia}
+\begin{tabular}{lllll}
+                              & Flanders  & Wallonia &  &  \\ \cline{1-4}
+$\hat\mu$  & 3089.944 & 2914.882 &  &  \\
+$\hat\phi$ & 0.399687 & 0.471615 &  &  \\
+                              &          &          &  & 
+\end{tabular}
+\end{table}
 
 ```{r matrix_setup}
 Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
@@ -89,15 +136,14 @@ NbFlemish <-  sum(Table[1,])
 NbWaWalloons <-sum(Table[2,])  
 ```
 
-
-
-
 ```{r functions_setup}
 kappaFct <- function(phi){1/phi}
 lambdaFct <- function(phi,mu){1/(phi*mu)}
 ```
 
-```{r flanders_wallonia}
+```{r flanders_wallonia, fig.align="center", fig.height=6, fig.width=15}
+library(latex2exp)
+par(mfrow=c(1,2))
 # Flanders
 Fl <- c(rep(1200,25), rep(1350,69), rep((1500+1800)/12,65), rep((1800+2300)/2,106),rep((2300+2700)/2,80), rep(3000,106),
         rep((3300+4000)/2,136), rep(4450,94),rep((4900+6000)/2,76), rep(6000,46))
@@ -106,12 +152,11 @@ Estimation_Fl <-  egamma(Fl)
 Estimated_kappa_Fl <- Estimation_Fl$parameters["shape"]
 Estimated_lambda_Fl <- 1/Estimation_Fl$parameters["scale"]
 Estimated_mu_Fl <- Estimated_kappa_Fl/Estimated_lambda_Fl
-Estimated_mu_Fl
+
 Estimated_phi_Fl <- 1/Estimated_kappa_Fl
-Estimated_phi_Fl
 
 estimGamma_Fl <- rgamma(10000,Estimated_kappa_Fl,Estimated_lambda_Fl)
-hist(Fl, probability = T, xlim = c(-500,8000))
+hist(Fl, probability = T, xlim = c(-500,7000), main = TeX(r'(Histogram of Flanders and gamma distribution with parameters $\hat{\mu_{Fl}}$ and $\hat{\phi_{Fl}}$)'), xlab = "Flanders")
 curve(dgamma(x,Estimated_kappa_Fl,Estimated_lambda_Fl), add = TRUE)
 
 # Wallonia
@@ -123,176 +168,154 @@ Estimation_Wall <-  egamma(Wall)
 Estimated_kappa_Wal <- Estimation_Wall$parameters["shape"]
 Estimated_lambda_Wal <- 1/Estimation_Wall$parameters["scale"]
 Estimated_mu_Wal <- Estimated_kappa_Wal/Estimated_lambda_Wal
-Estimated_mu_Wal
 Estimated_phi_Wal <- 1/Estimated_kappa_Wal
-Estimated_phi_Wal
 estimGamma_Wal <- rgamma(10000,Estimated_kappa_Wal,Estimated_lambda_Wal)
-hist(Wall, probability = T, xlim = c(-500,8000))
+hist(Wall, probability = T, xlim = c(-500,7000), main = TeX(r'(Histogram of Wallonia and gamma distribution with parameters $\hat{\mu_{Wal}}$ and $\hat{\phi_{Wal}}$)'), xlab = "Wallonia")
 curve(dgamma(x,Estimated_kappa_Wal,Estimated_lambda_Wal), add = TRUE)
 
 ```
-
-
 
 ```{r JustAnExample}
 muExample <- 2500; phiExample <- 1
 kappaExample <- kappaFct(phiExample)
 lambdaExample <- lambdaFct(muExample,phiExample)
 
-pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
-dgamma(2700, kappaExample, lambdaExample)
+#pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
+#dgamma(2700, kappaExample, lambdaExample)
 ```
 
+
+\newpage
+
 # Question 1
-Let $\theta_k:= (\mu_k, \phi_k)$ be the set of parameters for a HNI with respect to region $k$.
+Let \(\theta_k:= (\mu_k, \phi_k)\) be the set of parameters for a HNI with respect to region \(k\).
 
 ## (a) Theoretical probability
 
-Let $X$ be the monthly net income of 1123 Belgian households net income (HNI) older than 30 years. Regardless the 2 regions ($k=\{1,2\}$ wrt Flanders and Wallonnia, respectively), is assumed it follows a Gamma distribution. It can be reparametrised in terms of its mean $\mu$ and dispersion parameter $\phi$ with the following trick: 
+As expressed earlier, the distribution of monthly net income is described by a distribution, in terms of $\mu$ and $\phi$, for both region $k=\{1,2\}$: this gives
+  \vspace{-0em}
+  \begin{align}
+    f(x_k) = \frac{(\phi_k\mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1}         \exp{(\frac{-x_k}{\phi_k \mu_k})}
+  \end{align}
+    
+The cumulative distribution function is defined as : 
+  \begin{align*}
+    F(x) = \int_0^x f(u)\ \diff{u} = \frac{\gamma(\phi^{-1}, \frac{x}{\phi\mu})}{\Gamma(\phi^{-1})}
+  \end{align*}
+    
+where $\Gamma(a)$ and $\gamma(a,b)$ are the complete gamma and lower incomplete gamma functions, defined as:
+
+  \vspace{-1.5em}
+  \begin{align*}
+    \gamma(a,b) & = \int_{0}^{b} t^{a-1} \exp(-t) \diff{t}  \\
+    \Gamma(a) & = \gamma(a, \infty)
+  \end{align*}
+
+Then, the probability to fall into a certain HNI interval \(I\), for each region, is:
+  \begin{align*}
+    P( x \in I_j) =\int_{I_j} \frac{(\phi\mu)^{\frac{-1}{\phi}}}{\Gamma(\phi^{-1})}x^{\frac{1}{\phi}-1} \exp{(\frac{-x}{\phi\mu})}\ \diff{x}
+  \end{align*}
+    
+Using CDF writing , the probability can be proposed as a difference of CDF :
+
+\begin{equation*} 
+    p_j =
+    \left\{
+    \begin{array}{lcl}
+     F(x_{j}) & \text{if} & j =1\\
+     F(x_{j+1}) - F(x_{j}) & \text{if} & j \in \{2,..,9\}\\
+     1 - F(x_{j}) & \text{if} & j = 10\\
+    \end{array}
+    \right.
+\end{equation*}
+    
+\vspace{+1.5em}
+\begin{equation*} 
+\label{eq: CDFdifferences}
+    p_j =
+    \left\{
+    \begin{array}{lcl}
+        \frac{\gamma(\phi^{-1}, \frac{x_j}{\phi\mu})}{\Gamma(\phi^{-1})} &  \text{if} & j =1\\
+        \frac{1}{\Gamma(\phi^{-1})} \Big(\gamma(\phi^{-1}, \frac{x_{j_+1}}{\phi\mu}) - \gamma(\phi^{-1}, \frac{x_j}{\phi\mu})  \Big) & \text{if} & j \in \{2,..,9\}\\
+        1- \frac{\gamma(\phi^{-1}, \frac{x_j}{\phi\mu})}{\Gamma(\phi^{-1})}  & \text{if} & j =10\\
+    \end{array}
+    \right.
+    \end{equation*}
+    
+\newpage
+
+## (b) Theoretical expression for the likelihood 
+
+Since the frequency distribution in a given region is  assumed multinomial,
+
+We have, writing \(P:=(p{1},..,p_{10})\) and \(Y:= (Y_{1},... Y_{10})\):
+    \begin{align*}
+    Y | P  \sim \text{Mul}(Y,P)  & = \frac{ (\sum{y_i})!}{y_{1}! \, ... \, y_{10}! }\  p_1^{y_1} \times ... \times p_{10}^{y_{10}} \; \text{when} \sum_{j=1}^{10} p_j = 1 \\
+    &=0 \; \text{otherwise}
+    \end{align*}
+    
+For such a distribution, the likelihood $L$ is well known. Indeed, up to a multiplicative constant, for a region $k$, it is given by:
+    
+\begin{equation*}
+    L(P_k, Y_k) = P (Y_k | P_k) \propto \prod_{j=1}^{10} p_{k,j}^{y_{k,j}}
+\end{equation*}
+
+  To translate this likelihood in terms of $\mu_k$ and $\phi_k$, one can use the definition of the probability referring to the difference of CDF  (see equation \ref{eq: CDFdifferences}). By substituting $p_{k,j}$ with it and writing \([0; x_1], [x_1; x_2], ..., [x_9; x_{10}], [x_{10}, +\infty]\) as \(I_1, I_2, ..., I_{10}\),  the likelihood function becomes, up to a multiplicative constant, as follows: 
+
+\begin{equation*}
+L(\mu_k, \phi_k, Y_k) \propto  \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x_j^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{y_{k,j}}
+\end{equation*}
+
+and then taking the logarithm, we obtain the log-likelihood $\ell$ for a certain region:
+    
+\begin{equation*}
+        \ell (\mu_k, \phi_k, Y_k) = \sum_{j=1}^{10}y_{k,j}\times \ln(p_{k,j})
+\end{equation*}
+    
+where $y_{k,j}$ is the frequency of households in the interval j in the region k, and we recall that $p_{k,j}$ corresponds to the probability, or the area of the $j^{\text{th}}$ interval in the region k. Again, by substituting with the difference of CDF, the log-likelihood becomes:
+    
+\begin{equation} 
+\label{eq:LogLikelihoodDefinition}
+\ell (\mu_k, \phi_k, Y_k)= \sum_{j=1}^{10}y_{k,j}\times \ln\Bigg( \frac{1}{\Gamma(\phi_k^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)
+\end{equation}
 
 
-$$
+\newpage
+
+# Question 2 : Prior beliefs
+
+## Prior for the mean
+
+Prior to the study, the average net monthly household income, regardless the region, is believed to be within the interval (2400, 3600) on a 95\% confidence level. A convenient probability function that translates this belief is the Gaussian distribution with a mean at the center and standard deviation such that its $95\%$ confidence interval corresponds to the mentioned bonds. This belief is confirmed by Monte Carlo simulations. Indeed, if one generate a large amount of samples and repeatedly take its mean, one can determine an estimated density for its mean. It is symmetric without fat tails, which confirm the goodness of this assumption. The density is shown here below: 
+
+\vspace{+3em}
+
+```{r}
+n <- 10000
+moyenne <- numeric(n)
+for (i in 1:n) {
+  moyenne[i] <- mean(rgamma(1000,Estimated_kappa_Fl,Estimated_lambda_Fl), ylim=c(0,0.0065))
+}
+
+hist(moyenne, probability = T, breaks = 30, main= '', xlab = '')
+legend("topleft", legend=c('Estimated density' , 'Esimated normal density' ), col= c('red','blue'), lty = 1, cex=0.8)
+lines(density(moyenne), col= 'red', lwd=2)
+curve(dnorm(x,mean = mean(moyenne), sd=sd(moyenne)), add = T, col='blue', lwd=2)
+```
+
+\vspace{+2em}
+Hence, by assuming such a distribution for the prior, one can easily estimate its parameters. For both regions $\mu_0 = 3000$ (the center of the confidence interval). Then, to get the standard deviation, one can use the decomposition of a classical confidence interval for the mean. 
+
+\vspace{-2em}
+\begin{equation*}
 \begin{split}
-\text{shape: } \kappa & = \frac{1}{\phi} \\
-\text{rate: } \lambda & = \frac{1}{\phi\; \mu}
+    & 3000 - t_{(n_k-1, 1-\alpha/2)} \frac{s_k}{\sqrt{n_k}} = 2400 \\
+    \rightarrow  & \hat{\sigma}_0 = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}} \\
+    & \text{ where: } t_{n_1-1, 1-\alpha/2} \approx t_{n_2-1, 1-\alpha/2} \approx 1.96 
 \end{split}
-$$
+\end{equation*}
 
 
-For both regions $k=\{1,2\}$: This gives
-
-
-$$
-f(x_k) = \frac{(\phi_k\mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} \
-x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}
-$$
-
-Then, the probability to fall into a certain HNI interval $I$ is: 
-
-$$
-P( x_k \in I_j) =\int_{I_j} \frac{(\phi_k \mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1} \exp{(\frac{-x_k}{\phi_k \mu_k})}\ \diff{x}
-$$
-
-
-Using CDF writing, for a region $k$ , 
-
-$$
-p_j =
-\begin{cases}
- F(x_{j}, \kappa, \lambda) \ \text{if j =1}\\
- F(x_{j+1}, \kappa, \lambda) - F(x_{j}, \kappa, \lambda) \ \text{if} \ j \in \{2,..9\}\\
- 1 - F(x_{j}, \kappa, \lambda) \ \text{if j =10}\\
-\end{cases}
-$$
-
-$$
-p_j =
-\begin{cases}
- \frac{1}{\Gamma(\kappa)} \gamma(\kappa, \lambda x_j)  \ \text{if j =1}\\
-  \frac{1}{\Gamma(\kappa)} \Big(\gamma(\kappa, \lambda x_{j+1}) - \gamma(\kappa, \lambda x_j)  \Big)   \ \text{if} j \in \{2,..9\}\\
- 1- \frac{1}{\Gamma(\kappa)} \gamma(\kappa, \lambda x_j)  \ \text{if j =10}\\
-\end{cases}
-$$
-In terms of $\mu$ and $\phi$
-$$
-p_j =
-\begin{cases}
- \frac{1}{\Gamma(\phi^{-1})} \gamma(\phi^{-1}, (\mu \phi)^{-1} x_j)  \ \text{if j =1}\\
-  \frac{1}{\Gamma(\phi^{-1})} \Big(\gamma(\phi^{-1}, (\mu \phi)^{-1}x_{j+1}) - \gamma(\kappa, (\mu \phi)^{-1} x_j)  \Big)   \ \text{if} j \in \{2,..9\}\\
- 1- \frac{1}{\Gamma(\phi^{-1})} \gamma(\phi^{-1}, (\mu \phi)^{-1} x_j)  \ \text{if j =10}\\
-\end{cases}
-$$
-
-
-$$
-p_j =
-\begin{cases}
- \frac{1}{\Gamma(\phi^{-1})} \int^{(\mu \phi)^{-1} x_j}_0 t^{\phi^{-1}-1} e^{-t} \diff{t}   \ \text{if j =1}\\
-  \frac{1}{\Gamma(\phi^{-1})} \int^{(\mu \phi)^{-1}x_{j+1}}_{ (\mu \phi)^{-1} x_j} t^{\phi^{-1}-1} e^{-t} \diff{t}  \ \text{if} j \in \{2,..9\}\\
- \frac{1}{\Gamma(\phi^{-1})} \int^{+ \infty}_{(\mu \phi)^{-1}x_j} t^{\phi^{-1}-1} e^{-t} \diff{t}  \ \text{if j =10}\\
-\end{cases}
-$$
-
-
-
-
-## (b) Theoretical expression for the likelihood
-On behalf of writing simplicity, the region index is removed. Since the frequency distribution in a given region is multinomial, i.e. 
-
-We have, writing $P:=(p{1},..,p_{10})$ and $X:= (X_{1},... X_{10})$:
-
-$$
-\begin{split}
-X | P  \sim \text{Mul}(N,P)  & = \frac{x!}{x_{1}! \, ... \, x_{10}! } p_1^{x_1} \times ... \times p_{10}^{x_{10}} \; \text{when} \sum_{j=1}^{10} p_j = 1 \\
-&=0 \; \text{otherwise}
-\end{split}
-$$
-
-Up to a multiplicative constant, the likelihood can be written as follow:
-
-$$
-\begin{split}
-L(\theta_k, D_k) = P (D_k | \mu_k, \phi_k) \propto \prod_{j=1}^{10} p_{k,j}^{x_{k,j}}
-\end{split}
-$$
-
-## Taking approximation 
-
-$p_j$ corresponds to the area in the $j^{\text{th}}$ interval. One can take the approximation mean the mean,e.g. $x_{Flanders,3} = (1500+1800)/2 = 1650$ ? On can approximate that with $f(x_i) \Delta$ where $\Delta$ is the unit of measurement. 
-
-$$
-\begin{split}
-p_j =P(x_j - \frac{\Delta_j}{2} < x_j <x_j + \frac{\Delta_j}{2} ) & \approx f(x_j) \Delta_j \\
-& \approx \frac{1}{\Gamma(\phi_k^{-1})} \big( \phi_k \mu \big)^{-1/\phi_k} x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j
-\end{split}
-$$
-This gives for the likelihood: 
-
-
-$$
-\begin{split}
-P (D | \mu, \phi) & \propto \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1} \exp{(\frac{-x_j}{\phi_k \mu})} \Delta_j \\
-& \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \\
-\end{split}
-$$
-
-## Not taking approximation but the CDF differences
-
-
-$$
-\begin{split}
-P(D| \kappa, \lambda) & \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j} \gamma(x_1 , \kappa, \lambda)^{x_1} \Bigg[ \prod_{j=2}^9  \Big( \gamma(x_{j} , \kappa, \lambda)- \gamma(x_{j-1} , \kappa, \lambda)\Big)^{x_j}\Bigg] \big(1-\gamma(x_{10} , \kappa, \lambda)\big)^{x_{10}}  \\
-& \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j}  \Bigg( \int_0^{\lambda x_1}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_1}  \Bigg[ \prod_{j=2}^9 \Big( \int_{\lambda  x_j-1}^{\lambda x_{j}}  x^{\kappa-1} e^{-x} \diff x \Big)^{x_{j}}\Bigg] \Bigg( \int_{\lambda x_{10}}^{+\infty}  x^{\kappa-1} e^{-x} \diff x \Bigg)^{x_{10}}
-\end{split} 
-$$
-
-If we write $[0; x_1], [x_1; x_2], ..., [x_9; x_{10}], [x_{10}, +\infty]$ as $I_1, I_2, ..., I_9$ and $I_{10}$. The notation can be lightened. With respect to the region $k$, this gives:
-$$
-P(D_k | \kappa_k, \lambda_k) \propto \big(\frac{1}{\Gamma(\kappa)}\big)^{\sum_{i=1} x_j}  \prod_{j=1}^{10} \Bigg( \int\limits_{\lambda_k I_j} x^{\kappa_k-1} e^{-x} \diff x \Bigg)^{x_{k,j}}
-$$
-
-Writing in terms of $\mu_k$ and $\phi_k$: 
-
-$$
-P(D_k | \mu_k, \phi_k) \propto  \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}}
-$$
-
-## NOT taking approximation but with PDF definitions: 
-
-
-
-# Question 2 : Priors 
-
-- Statement 1: we are at 95% convinced that the mean net monthly household income in a given region is in the interval (2400, 3600). If one assumes a normal distribution for the mean $\mu_k$ (à justifier), then it is possible to get a prior of the distriubtion for both regions: 
-
-For both regions $\mu_0 = 3000$. Then, to get the standard deviation: 
-
-$$
-\begin{split}
-& 3000 - t_{(n_k-1, 1-\alpha/2)} \frac{s_k}{\sqrt{n_k}} = 2400 \\
-\rightarrow  & \hat{\sigma}_0 = \frac{s_k}{\sqrt{n_k}}= \frac{600}{t_{(n_k-1, 1-\alpha/2)}}
-\end{split}
-$$
 
 ```{r}
 mu_prior <- 3000
@@ -300,78 +323,67 @@ sigma_prior <- 306.12
 ```
 
 
-$\hat{\sigma}_{Fl} = 306$
+Therefore $\hat{\sigma}_{Fl} \approx \hat{\sigma}_{Wal} \approx 306.12$, then $\mu_k \sim N(\mu_{0,k}= 3000, \sigma_{0,k} =306.12)$. So we get as a prior for the parameter $\mu$, up to a multiplicative constant: 
 
-So we have 
-$$\mu \sim N(\mu_0= 3000, \sigma_0 =306)$$
-
-$$
+\begin{equation}
 \begin{split}
- \pi(\mu) \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) }
+ \pi(\mu_k) \propto  \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu_k-\mu_0)^2\big) } \ \forall k\in\{1,2\} 
 \end{split}
-$$
+\end{equation}
 
 
-- dispersion parameter: 
 
-If one considers that the parameter can be in any point within the interval (0.0, 10.0) with the same probability, then one could say that it follows a uniform distribution between those to interval 
+## Prior for the dispersion parameter
 
-$$
-\phi_k \sim U (a=0,b=10) \propto 1_{0,10}
-$$
+It is certain that $\phi_k$ lies in the interval $(0.0, 10.0)$ but there is no knowledge on how the probability mass is broken down. In order to reflect this prior knowledge, one can assume that the dispersion parameter is uniformly distributed with lower and upper bonds of 0 and 10, respectively, i.e. $\phi_k \sim \mathcal{U} (0,10)$. Hence, up to a multiplicative constant, the prior probability can be represented via the indicator function as below:
 
-Using the entropy theorem, the conjugate prior would be the product of the two last quantity: 
+\begin{equation*}
+     \pi(\phi_k) \propto \mathbf{1}_{0,10} \ \forall k\in\{1,2\}
+\end{equation*}
 
 
-$$
+## The conjugate prior
+
+Since there is no prior information on the dependence structure of the priors, it is recommended to consider them as independent in order to remain as least-informative as possible( this follows the maximal entropy principle). By doing so, the conjugate prior becomes: 
+
+\vspace{-2em}
+\begin{equation} 
+\label{eq: ConjugatePriorDefinition}
 \begin{split} 
-\text{prior:}  P(\mu_k, \phi_k) & = P(\mu_k) \ P(\phi_k) \\
-& \propto \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
+  \pi (\mu_k, \phi_k) & = \pi(\mu_k) \ \pi (\phi_k) \\
+& \propto  \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } \mathbf{1}_{0;10}
 \end{split}
-$$
+\end{equation}
 
 # Question 3
 
-## Question 3a: posterior
+## Question 3.a: Posterior for Flanders
 
-### With approximation 
-$\sigma^2 = \phi \mu^2$
+Since the likelihood and prior for $\mu_k$ and $\phi_k$ have been defined, a joint posterior can be expressed as their product. The joint posterior for Flanders, i.e. of $\theta_1 = (\mu_1,\phi_1)$ is defined, up to a multiplicative constant, here below:
 
-$$
-\begin{split}
-P(\mu, \phi | D) & \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j \sigma^{-1/2} \exp{ \big(-\frac{1}{2\sigma^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\ 
-& \propto \exp{(\frac{- \sum x_j}{\phi_k \mu})}  \prod_{j=1}^{10}  x_j^{\frac{1}{\phi_k}-1}  \Delta_j (\frac{1}{\sqrt{\phi} \mu}) \exp{ \big(-\frac{1}{2 \phi \mu^2}(\bar{x}_k-\mu)^2\big) } 1_{0,10} \\
-\end{split}
-$$
+\begin{equation*} 
+\label{eq: JointPosteriorFlanders}
+  \begin{split}
+    P(\mu_1, \phi_1 | Y_1) \propto  \Bigg( \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi_1^{-1})} \int\limits_{ \frac{I_j}{\phi_1 \mu_1}} x^{(\phi_1^{-1}-1)} e^{-x} \diff x \Bigg)^{y_{1,j}} \Bigg)   \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
+  \end{split}
+\end{equation*}
 
+## 3.b: Compute log-posterior
 
-### Without approximation
+Computing the logarithm of this expression, we find the log likelihood posterior, which is, up to an additive constant:
 
-$$
-\begin{split}
-P(\mu_k, \phi_k | D) \propto  \Bigg( \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{x_{k,j}} \Bigg)  \sigma_0^{-1/2} \exp{ \big(-\frac{1}{2\sigma_0^2}(\mu-\mu_0)^2\big) } 1_{0;10}
-\end{split}
-$$
+\begin{equation*}  
+  h(\mu_1,\phi_1, Y_1) = C^t +  \ell(\mu_1, \phi_1, Y_1)+ \ln(\pi(\mu_1,\phi_1))
+\end{equation*}
+    
+Replacing the log-likelihood and log of the prior by their expression (see Equations \ref{eq:LogLikelihoodDefinition} and \ref{eq: ConjugatePriorDefinition} ), the log-posterior can be theoretically written as below:
 
-## 3.b 
-
-the log likelihood is, up to an additive constant:
-$$
-\begin{split}
-l(\mu,\phi) & \propto  \sum_{j=1}^{10} x_j \ln{\Bigg(\frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)}
-\end{split}
-$$
-so the log-posterior is: 
-
-$$
-h(\mu,\phi) \propto  l(\mu,\phi) + \ln(\pi(\mu,\phi))
-$$
-
-$$
-h(\mu,\phi) = C^t +  \sum_j x_j \ln{\big(F(\mu,\phi,x_{j+1})-F(\mu,\phi,x_{j})  \big)} - \frac{1}{2 \sigma_0^2} (\mu-\mu_0)^2
-$$
-
-
+\begin{equation} 
+\label{eq:LogPosteriorDefinition}
+        h(\mu_1,\phi_1, Y_1) = C^t + \sum_{j=1}^{10}y_{1,j}\times \ln\Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_1 \mu_1}} x^{(\phi_1^{-1}-1)} e^{-x} \diff x \Bigg) - \frac{1}{2 \sigma_{0}^2} (\mu-\mu_{0})^2 + \ln(\mathbf{1}_{0;10})
+\end{equation}
+    
+This expression has been implemented in R by not considering the constant term.
 
 ```{r}
 lpostold <- function(theta,freq){
@@ -388,7 +400,10 @@ lpostold <- function(theta,freq){
   logPost <-  LL + dnorm(mu, mean = mu_prior , sd = sigma_prior, log=T)   +  dunif(phi, min=0, max=10, log = T) # /!\ mu_prior et sigma_prior doivent avoir été determiné plus haut
   return(logPost)
 }
+```
 
+
+```{r, echo=T}
 # Intervals of the frequency table
 intervals = c(0, 1200,1500,1800,2300,2700,3300,4000,4900,6000, Inf)
 
@@ -422,11 +437,7 @@ lpost = function(theta, freq){
 }
 ```
 
-```{r}
-lpost(c(Estimated_mu_Fl, Estimated_phi_Fl), t(Table[1,]))
-lpost(c(Estimated_mu_Wal, Estimated_phi_Wal), t(Table[2,]))
-```
-
+\newpage
 
 # 4. 
 
@@ -816,14 +827,25 @@ traceplot(out_wal)
 ```
 
 # Question 8: Credible interval for means difference
-```{r}
-diff_of_mu <- out_fl.matrix[,1] - out_wal.matrix[,1]
-plot(density(diff_of_mu), main = "Credibles intervals for the difference of Net Income between Flanders and Wallonia", xlab = 'mu_1 - mu_2')
-legend("topleft", legend = c("Quantile-based intervals", "HPD intervals"), col = 1:2 , lty=1:2)
-abline(v=quantile(diff_of_mu, probs=c(0.025,0.975), col= 'red' , lty=2))
-abline(v= HPDinterval(as.mcmc(diff_of_mu)), col=2, lty=2)
-```
 
+The ultimate goal of this work is comparing the households income divergence between Flanders and Wallonia given some a priori and after a experimental study through $1228$ Belgian households. To do so, $50000$ samples have been generated through the metropolis algorithm for Flanders and its French-talking counterpart. Their estimated density is jointly represented here below:
+```{r}
+plot(density(out_fl.matrix[,"mu"]), main= "Comparison between Flanders and Wallonia Net Income households",
+     lty=2, xlim=c(2800, 3500), xlab = "Net Income household (euro)", col=2, lwd=2)
+legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2,4), lwd = 2, lty = c(2,1))
+lines(density(out_wal.matrix[,"mu"]), col=4, lwd=2)
+```
+There is a ```r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)``` eur difference on average. However, a large part of the density seems to overlap. The density of their difference is shown below along with a $95\%$ qunatile based and HPD credible intervals:
+```{r}
+library(latex2exp)
+diff_of_mu <- out_fl.matrix[,1] - out_wal.matrix[,1]
+plot(density(diff_of_mu), main = "Difference of Net Income between Flanders and Wallonia",
+     xlab = TeX(r'($\hat{\mu}_1 - \hat{\mu}_2$)'), cex.main= 0.9, lwd=2)
+legend("topleft", legend = c("95% Quantile-based intervals", "95% HPD intervals"), col = c('red', 'blue') , lty=2:3, cex=0.7, lwd=3)
+abline(v=quantile(diff_of_mu, probs=c(0.025,0.975)), col= 'red' , lty=2, lwd=3)
+abline(v= HPDinterval(as.mcmc(diff_of_mu)), col='blue', lty=3, lwd=3)
+```
+On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the income is different from one another. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
 
 <!------>
 \appendix
