@@ -190,7 +190,7 @@ lambdaExample <- lambdaFct(muExample,phiExample)
 # Question 1
 Let \(\theta_k:= (\mu_k, \phi_k)\) be the set of parameters for a HNI with respect to region \(k\).
 
-## (a) Theoretical probability
+## Theoretical probability
 
 As expressed earlier, the distribution of monthly net income is described by a distribution, in terms of $\mu$ and $\phi$, for both region $k=\{1,2\}$: this gives
   \vspace{-0em}
@@ -439,73 +439,36 @@ lpost = function(theta, freq){
 
 \newpage
 
-# 4. 
+# 4. Laplace approximation
 
-## Estimation 
-Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is unimodale then, if it is normally distributed, then the mode=mean, which means that the mean can be found by optimizing the log-likelihood with respect to its parameters. (aussi assumer $\mu$ et $\phi$ indépendant?? ), then blablabla (expliquez avec hessienne). 
+## Approximation to the joint posterior
 
+Laplace approximation is a method that allows to approximate the log posterior distribution $h(\mu_1,\phi_1, Y_1)$ by a multimodal normal distribution (bimodal in our case), using the second Taylor approximation . More precisely, it locate the mode of the log-posterior distribution, and use it as the mean of the normal distribution, and then, it derives the variance of the normal distribution by evaluating the curvature of the posterior at the mode.
 
-Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=Laplace%20Approximation%20of%20Posterior%20Distributions&text=Laplace%20approximation%20is%20a%20method,the%20posterior%20at%20the%20mode. 
+In this context, we optimize the log-posterior to find the mode of the distribution, and we set the parameters `hessian = TRUE` to compute the variance-covariance matrix of the log-posterior distribution. Note that the variance-covariance matrix is find by taking the second derivative of the distribution.
 
-
-### Flanders
-```{r}
+```{r, echo=TRUE}
 inits_Fl <- c(mu = Estimated_mu_Fl , phi = Estimated_phi_Fl)
-fit_Fl <- optim(inits_Fl, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
+fit_Fl <- optim(inits_Fl, lpost, control = list(fnscale = -1),
+                hessian = TRUE, freq= Table[1,] )
 param_mean_Fl <- fit_Fl$par
 param_cov_mat_Fl <- solve(-fit_Fl$hessian)
-round(param_mean_Fl, 2)
-round(param_cov_mat_Fl, 3)
+#round(param_mean_Fl, 2)
+#round(param_cov_mat_Fl, 3)
 ```
 
-```{r}
+Thus, we find the distribution of $\theta_1$ for Flanders, and the plot of their distribution are given by :
+```{r, fig.width=10}
 library(mvtnorm)
+par(mfrow=c(1,2))
 laplace_samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
-plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
-plot(density(laplace_samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
+plot(density(laplace_samples_Fl[,1]), main = TeX(r'(Laplace approximation for $\mu_{Fl}$)'))
+plot(density(laplace_samples_Fl[,2]), main = TeX(r'(Laplace approximation for $\phi_{Fl}$)'))
 ```
 
 
-### Wallonia
+## Credible intervals Laplace approximation
 
-```{r}
-inits_Wal <- c(mu = Estimated_mu_Wal , phi = Estimated_phi_Wal)
-fit_Wal <- optim(inits_Wal, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
-param_mean_Wal <- fit_Wal$par
-param_cov_mat_Wal <- solve(-fit_Wal$hessian)
-round(param_mean_Wal, 2)
-round(param_cov_mat_Wal, 3)
-```
-```{r}
-samples_Wal <- rmvnorm(10000, param_mean_Wal, param_cov_mat_Wal)
-plot(density(samples_Wal[,1]), main = 'laplace approximation for mu in Wallonia')
-plot(density(samples_Wal[,2]), main = 'laplace approximation for phi in Wallonia')
-```
-
-## Credible intervals Laplce approximation
-
-```{r}
-levels <- c(0.1,0.25)
-```
-
-### Flanders
-The credible region is given here below: 
-
-```{r}
-plot(x =laplace_samples_Fl[,1] , y = laplace_samples_Fl[,2] , xlab = 'mu', ylab='phi', pch='.')
-x1 <- seq(3400,4000,length=1000)
-y1 <- seq(0.16,0.26, length=1000)
-lpostFl_laplaceApprox <- function(MyMu,MyPhi){ #theta_l = c(mu,phi)
-  MuPhi <-  cbind(MyMu,MyPhi)
-  dmvnorm(MuPhi, colMeans(laplace_samples_Fl), cov(laplace_samples_Fl), log=TRUE)
-}
-
-z1 <- outer(x1,y1,lpostFl_laplaceApprox)
-R <- exp(z1-max(z1)) 
-lvls <- c(0.01, 0.25, 0.5, 0.75, 0.9)
-contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-lvls), col = 'red')
-
-```
 ```{r}
 library(MASS)
 library(plotly)
@@ -513,25 +476,29 @@ den3dLaplaceApprox <- kde2d(laplace_samples_Fl[,1], laplace_samples_Fl[,2])
 plot_ly(x=den3dLaplaceApprox$x, y=den3dLaplaceApprox$y, z=den3dLaplaceApprox$z) %>% add_surface()
 ```
 
-
-We needs to get the credible interval for $\mu$. This means that we needs the marginal posterior distribution: 
+To get the credible intervalfor $\mu$, we first need the marginal posterior distribution of $\mu$, this distribution is given by :
 
 $$
 P(\mu| D) \propto \int p(\mu, \phi |D) \diff \phi
 $$
-It can be shown that the marginal (univariate) distribution of the bivariate Gaussian distribution $N\big( \mu_\theta, \Sigma)$ with $\mu_\theta = (E(\mu), E(\phi) )$ and 
+It can be shown that the marginal (univariate) distribution of the bivariate Gaussian distribution $N\big( \mu_\theta, \Sigma)$ also follow a normal distribution with paramters :
 
-$$
-\Sigma =
+\begin{equation*} 
+    \left\{
+    \begin{array}{l}
+     \mu_\theta = (E(\mu), E(\phi)) \\
+      \Sigma =
 \begin{pmatrix}
 \sigma_\mu & \sigma_{\mu,\phi} \\
 \sigma_{\phi,\mu} & \sigma_\phi
-\end{pmatrix}
-$$ 
-also follows a normal distribution. See \href{https://paolomaccallini.com/2018/06/20/bivariate-normal-distribution/}{here}. Hence, for $\mu$, one has: 
+\end{pmatrix}\\
+    \end{array}
+    \right.
+\end{equation*}
 
+Hence, for $\mu$, one has:
 $$\mu|D \si= N(E(\mu),\sigma_\mu) $$
-We needs that $95\%$ of the marginal posterior to fall into the interval for Flanders:
+We needs that $95\%$ of the marginal posterior to fall into the interval for Flanders, to do so, 
 ```{r}
 alpha <- 0.05
 marginal_posterior_mu_Fl <- rnorm(10000,param_mean_Fl[1], sqrt(param_cov_mat_Fl[1,1]))
@@ -540,13 +507,14 @@ QuantileCI_Laplace_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/
 # HPD intervals 
 HPDIntervals_Laplace_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
 
-plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
+plot(density(laplace_samples_Fl[,1]), main = TeX(r'(Laplace approximation for $\mu_{Fl}$)'))
 legend("topleft", legend=c("HPD", "quantile-based"),
        col=c("red", "green"), lty=1:2)
 
 abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col="red", lty=1)
 abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col="green", lty=2)
 ```
+The interval based on the quantile is  [`r c(round(QuantileCI_Laplace_Fl[1],2), round(QuantileCI_Laplace_Fl[2],2))`] , while the quantile based on the highest posterior density is [`r c(round(HPDIntervals_Laplace_Fl[1],2), round(HPDIntervals_Laplace_Fl[2],2))`].
 
 # Question 5
 
