@@ -208,7 +208,6 @@ curve(dgamma(x, estim_params_wal$kappa, estim_params_wal$lambda), xlim=c(0,6500)
 ## (a) Theoretical probability
 
 Let \(X\) be the HNI regardless the 2 regions, it is assumed it follows a Gamma distribution with parameters \(\theta_k:= (\mu_k, \phi_k)\). It can be reparametrised in terms of its mean \(\mu\) and dispersion parameter \(\phi\) with the following trick:
-
 $$
 \begin{split}
 \kappa & = \frac{1}{\phi} \\
@@ -228,12 +227,11 @@ and the cumulative distribution function is such as
 \end{align}
     
 where $\Gamma(a)$ and $\gamma(a,b)$ are the complete gamma and lower incomplete gamma functions, defined as:
-
-  \vspace{-1.5em}
-  \begin{align*}
-    \gamma(a,b) & = \int_{0}^{b} t^{a-1} \exp(-t) \diff{t}  \\
-    \Gamma(a) & = \gamma(a, \infty)
-  \end{align*}
+\vspace{-1.5em}
+\begin{align*}
+  \gamma(a,b) & = \int_{0}^{b} t^{a-1} \exp(-t) \diff{t}  \\
+  \Gamma(a) & = \gamma(a, \infty)
+\end{align*}
 
 Then, the probability to fall into a certain HNI interval \(I\), for each region, is:
   \begin{align}
@@ -255,7 +253,7 @@ Using CDF writing , the probability can be proposed as a difference of CDF :
 \end{equation}
     
 \vspace{+1.5em}
-\begin{equation*} 
+\begin{equation} 
   p_j =
   \left\{
   \begin{array}{lcl}
@@ -265,7 +263,7 @@ Using CDF writing , the probability can be proposed as a difference of CDF :
   \end{array}
   \right.
 \label{eq:CDFdifferences}
-\end{equation*}
+\end{equation}
   
 \newpage
 
@@ -285,7 +283,7 @@ For such a distribution, the likelihood $L$ is well known. Indeed, up to a multi
     L(P_k, Y_k) = P (Y_k | P_k) \propto \prod_{j=1}^{10} p_{k,j}^{y_{k,j}}
 \end{equation*}
 
-To translate this likelihood in terms of $\mu_k$ and $\phi_k$, one can use the definition of the probability referring to the difference of CDF  (see equation \ref{eq:CDFdifferences}). By substituting $p_{k,j}$ with it and writing \([0; x_1], [x_1; x_2], ..., [x_9; x_{10}], [x_{10}, +\infty]\) as \(I_1, I_2, ..., I_{10}\),  the likelihood function becomes, up to a multiplicative constant, as follows: 
+To translate this likelihood in terms of $\mu_k$ and $\phi_k$, one can use the definition of the probability referring to the difference of CDF  (see equation \ref{eq:CDFdifferences}). By substituting $p_{k,j}$ with it and writing \([0; x_1], [x_1; x_2], ..., [x_9; x_{10}], [x_{10}, +\infty]\) as \(I_1, I_2, ..., I_{10}\),  the likelihood function becomes, up to a multiplicative constant, as such: 
 
 \begin{equation}
 L(\mu_k, \phi_k, Y_k) \propto  \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1})} \int\limits_{ \frac{I_j}{\phi_k \mu_k}} x_j^{(\phi_k^{-1}-1)} e^{-x} \diff x \Bigg)^{y_{k,j}}
@@ -293,9 +291,9 @@ L(\mu_k, \phi_k, Y_k) \propto  \prod_{j=1}^{10} \Bigg( \frac{1}{\Gamma(\phi^{-1}
 
 and then taking the logarithm, we obtain the log-likelihood $\ell$ for a certain region:
     
-\begin{equation*}
-        \ell (\mu_k, \phi_k, Y_k) = \sum_{j=1}^{10}y_{k,j}\times \ln(p_{k,j})
-\end{equation*}
+\begin{equation}
+    \ell (\mu_k, \phi_k, Y_k) = \sum_{j=1}^{10}y_{k,j}\times \ln(p_{k,j})
+\end{equation}
     
 where $y_{k,j}$ is the frequency of households in the interval j in the region k, and we recall that $p_{k,j}$ corresponds to the probability, or the area of the $j^{\text{th}}$ interval in the region k. Again, by substituting with the difference of CDF, the log-likelihood becomes:
     
@@ -359,8 +357,6 @@ Therefore $\hat{\sigma}_{Fl} \approx \hat{\sigma}_{Wal} \approx 306.12$, then $\
 \end{split}
 \end{equation}
 
-
-
 ## Prior for the dispersion parameter
 
 It is certain that $\phi_k$ lies in the interval $(0.0, 10.0)$ but there is no knowledge on how the probability mass is broken down. In order to reflect this prior knowledge, one can assume that the dispersion parameter is uniformly distributed with lower and upper bonds of 0 and 10, respectively, i.e. $\phi_k \sim U(0,10)$. Hence, up to a multiplicative constant, the prior probability can be represented via the indicator function as below:
@@ -413,7 +409,7 @@ Replacing the log-likelihood and log of the prior by their expression (see Equat
     
 This expression has been implemented in R by not considering the constant term.
 
-```{r log_posterior_r}
+```{r log_posterior_r, echo=T}
 lpost <- function(theta, freq) {
   # Transform mu and phi -> kappa and lambda
   kappa <- kappa(theta[2])
@@ -433,15 +429,17 @@ lpost <- function(theta, freq) {
 }
 ```
 
-\newpage
-
 # Question 4
 
-## Approximation to the joint posterior
+## Approximation of the joint posterior
 
-Laplace approximation is a method that allows to approximate the log posterior distribution $h(\mu_1,\phi_1, Y_1)$ by a multimodal normal distribution (bimodal in our case), using the second Taylor approximation . More precisely, it locate the mode of the log-posterior distribution, and use it as the mean of the normal distribution, and then, it derives the variance of the normal distribution by evaluating the curvature of the posterior at the mode.
+Laplace approximation is a method that allows to approximate the log posterior distribution $h(\mu_1,\phi_1, Y_1)$ by a multimodal normal distribution (bimodal in our case), using the second Taylor approximation. More precisely, it locate the mode of the log-posterior distribution, and use it as the mean of the normal distribution, and then, it derives the variance of the normal distribution by evaluating the curvature of the posterior at the mode.
 
-In this context, we optimize the log-posterior to find the mode of the distribution, and we set the parameters `hessian = TRUE` to compute the variance-covariance matrix of the log-posterior distribution. Note that the variance-covariance matrix is find by taking the second derivative of the distribution.
+\begin{note}
+  Refaire un peu ce paragraphe ? 
+\end{note}
+
+In this context, we optimize the log-posterior to find the mode of the distribution, and we set the parameters `hessian = TRUE` to compute the variance-covariance matrix of the log-posterior distribution. Note that the variance-covariance matrix is found by taking the second derivative of the distribution.
 
 ```{r laplace_approx}
 inits = c(mu = mu_prior , phi = 0.01)
@@ -457,14 +455,25 @@ laplace_approx = function(inits, frequencies){
 
 laplace_fl <- laplace_approx(inits, flanders)
 laplace_fl.mcmc <- mcmc(laplace_fl$samples)
-# summary(laplace_fl$samples)
 ```
+
+\begin{figure}[h]
+\centering
+\hspace{1em}
+\begin{BVerbatim}
+```{r, results='asis'}
+summary(laplace_fl.mcmc)
+```
+\end{BVerbatim}
+\end{figure}
 
 Thus, we find the distribution of $\theta_1$ for Flanders, and the plot of their distribution are given by :
 
 ```{r laplace_approx_plot, fig.show='hold', out.width="49%"}
-plot(density(laplace_fl$samples[, 1]), main = "laplace approximation for mu in Flanders")
-plot(density(laplace_fl$samples[, 2]), main = "laplace approximation for phi in Flanders")
+plot(density(laplace_fl$samples[, 1]), 
+     main = expression(paste("Laplace approximation for ", mu," in Flanders")))
+plot(density(laplace_fl$samples[, 2]), 
+     main = expression(paste("Laplace approximation for ", phi," in Flanders")))
 ```
 
 ## Credible intervals Laplace approximation
@@ -515,7 +524,7 @@ abline(v=c(HPD_LP[1], HPD_LP[2]), col="red", lty=1)
 abline(v=c(QB_LP[1], QB_LP[2]), col="blue", lty=2)
 ```
 
-The interval based on the quantile is [`r c(round(QB_LP[1],2), round(QB_LP[2],2))`] , while the quantile based on the highest posterior density is [`r c(round(HPD_LP[1],2), round(HPD_LP[2],2))`].
+The interval based on the quantile is [`r c(round(QB_LP[1],2), round(QB_LP[2],2))`] , while the quantile based on the highest posterior density is [`r c(round(HPD_LP[1],2), round(HPD_LP[2],2))`]. Those are really close.
 
 # Question 5
 
@@ -572,7 +581,7 @@ metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies
 
   # thetas <- thetas[, -0.1 * M]
 
-  names(thetas) <- c("mu", "phi")
+  colnames(thetas) <- c("mu", "phi")
   names(accepted) <- c("mu", "phi")
   return(list(theta = thetas, accept_rate = accepted / M))
 }
@@ -581,8 +590,8 @@ burnin = function(array, percent){
   tail(array, -percent*nrow(array))
 }
 
-sd_hat_mu <- sd(laplace_fl$samples[,"mu"])
-sd_hat_phi <- sd(laplace_fl$samples[,"phi"])
+sd_hat_mu <- sqrt(laplace_fl$cov[1,1])
+sd_hat_phi <- sqrt(laplace_fl$cov[2,2])
 ```
 
 ```{r metropolis_1}
@@ -593,22 +602,24 @@ metro_fl1 <- metropolis_algorithm(5e4,
   factors = c(mu = 2.74, phi = 2.75),
   frequencies = flanders
 )
-```
 
-
-
-```{r}
-acceptance_rate_mu_Metrop1 <- metro_fl1$accept_rate["mu"] * 100
-cat("Acceptance rate for mu: ", acceptance_rate_mu_Metrop1, "% \n")
-
-acceptance_rate_phi_Metrop1 <- metro_fl1$accept_rate["phi"] * 100
-cat("Acceptance rate for phi: ", acceptance_rate_phi_Metrop1, "% \n")
-```
-
-```{r}
 # Remove burnin samples
 metro_fl1.theta <- burnin(metro_fl1$theta, 0.1)
+metro_fl1.theta.mcmc = as.mcmc(metro_fl1.theta)
+```
 
+```{r acceptance_rate_metropolis_1, results=''}
+cat("Acceptance rate for mu: ", metro_fl1$accept_rate["mu"] * 100, "% \n")
+cat("Acceptance rate for phi: ", metro_fl1$accept_rate["phi"] * 100, "% \n")
+```
+
+## (b) diagnostic for convergence
+
+### Graphs analysis {-}
+
+The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
+
+```{r plot_metropolis_1_mu_phi}
 plot(metro_fl1.theta[, 1], metro_fl1.theta[, 2], xlab = "mu", ylab = "phi", col=rgb(0,0,0,.5))
 
 # library(MASS)
@@ -617,14 +628,8 @@ plot(metro_fl1.theta[, 1], metro_fl1.theta[, 2], xlab = "mu", ylab = "phi", col=
 # plot_ly(x = den3d$x, y = den3d$y, z = den3d$z) %>% add_surface()
 ```
 
-
-## (b) diagnostic for convergence
-
-### Graphs analysis {-}
-The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
-```{r}
-par(mfrow = c(2, 1))
-traceplot(as.mcmc(metro_fl1.theta))
+```{r, fig.height=5, out.width="49%", fig.show='hold'}
+traceplot(metro_fl1.theta.mcmc)
 ```
 By doing so, one sees that the mixing seems pretty good. For example, the autocorrelation is significative up to not a too high order. As such, the parameter space of $theta$ does not seem to be visited to slowly. 
 
@@ -650,7 +655,6 @@ plot.acf.pacf = function(data, lag.max = 50, simplify=T, linked_by_line=T, title
   }
   # Plot the modified ones
   # Add lines to improve further the visualization
-
   plot(ts.acf, ylim=c(min(ts.acf$acf)-0.2, min(max(ts.acf$acf+0.3), 1)), main=titles[1], lwd=2, ...)
   if(linked_by_line){lines(ts.acf$lag, ts.acf$acf, type="b", col=rgb(0,0,0,.7))}
 
@@ -666,16 +670,20 @@ plot.acf.pacf(metro_fl1.theta[, 2], lag.max = 30)
 ```
 Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autocorrelation. 
 
-```{r}
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r effective_size_metro_1, results='asis'}
 # out of 48 000 observations
-effectiveSize(metro_fl1.theta)
+effectiveSize(metro_fl1.theta.mcmc)
 ```
-
-
+\end{BVerbatim}
+\end{figure}
 
 ### Gelman-Rubin {-}
 
-This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. As a second chain, more exotic  values (but still possible , a priori) are proposed for initialization: $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 2000 generations.
+This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. As a second chain, more exotic  values (but still possible , a priori) are proposed for initialization: $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 1000 generations.
 
 ```{r metropolis_2}
 metro_fl2 <- metropolis_algorithm(50000,
@@ -685,24 +693,38 @@ metro_fl2 <- metropolis_algorithm(50000,
   factors = c(mu = 2.75, phi = 2.75),
   frequencies = flanders
 )
+
+metro_fl2.theta <- metro_fl2$theta
+metro_fl2.theta.mcmc = as.mcmc(metro_fl2.theta)
 ```
 
-```{r traceplot_both_metro}
-par(mfrow = c(2, 1))
-traceplot(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
+```{r traceplot_both_metro, fig.show="hold", out.width="49%", fig.width=5.5}
+traceplot(list(
+  head(as.mcmc(metro_fl1$theta), 1000), 
+  head(as.mcmc(metro_fl2$theta), 1000)
+))
 ```
 
 It seems that convergence occurs rather quickly. After a early generations, the chains seem to have similar mean variance. This can be more formally assessed with the Gelman-Rubin statistic that one wishes to be smaller that, say, $1.1$. Here below is shown the estimated statistic along with its upper bond. 
 
-```{r gelman_diag}
-gelman.diag(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r gelman_diag, results='asis'}
+gelman.diag(list(head(metro_fl1.theta.mcmc, 1000), head(metro_fl2.theta.mcmc, 1000)))$psrf
 ```
+\end{BVerbatim}
+\end{figure}
+
 
 Those are clearly below, which is a good sign of convergence. To see when convergence may have occurred, one could look at the statistic with respect to the number of generations. Here below are presented the statistics, up to 2000 samples:
 
 ```{r gelman_plot}
-gelman.plot(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
-abline(h = 1.1, col = "green")
+gelman.plot(list(
+  head(as.mcmc(metro_fl1$theta), 2000), 
+  head(as.mcmc(metro_fl2$theta), 2000)
+))
 ```
 
 Accordingly, the convergence seems to occurs after roughly 1500 observations for both parameters. 
@@ -713,15 +735,22 @@ Accordingly, the convergence seems to occurs after roughly 1500 observations for
 
 The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, respectively:
 
-```{r geweke_diag}
+
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r geweke_diag, results='asis'}
 geweke.diag(mcmc((metro_fl1.theta)))
 ```
+\end{BVerbatim}
+\end{figure}
 
 To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
 
 ```{r geweke_plot}
 par(mfrow = c(2, 1))
-geweke.plot(mcmc((metro_fl1.theta)), nbins = 50)
+geweke.plot(metro_fl1.theta.mcmc, nbins = 50)
 ```
 
 Except for one in $\phi$, the hypothesis of same mean in never rejected. There is still no proof of non convergence of the generated chains. 
@@ -755,11 +784,13 @@ credible_intervals_comparison(.05)
 
 # Question 6
 
-```{r jags_model_definition, eval=F}
+```{r jags_model_definition, eval=F, echo=T}
 metro_model <- function() {
+  # Utils
   kappa <- 1 / phi
   lambda <- 1 / (phi * mu)
-
+  
+  # Probabilities
   for (i in 1:10) {
     pi[i] <- pgamma(intervals[i + 1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)
   }
@@ -785,17 +816,32 @@ jags_fl <- jags.model(
   file = model.file,
   inits = list(list(mu = estim_mu_fl, phi = estim_phi_fl)),
   data = list(n = 803, intervals = intervals, y = flanders),
-  n.chains = 1
+  n.chains = 1,
+  quiet=T
 )
 
 update(jags_fl, 1000)
 
 out_fl <- coda.samples(model = jags_fl, c("mu", "phi"), n.iter = 50000)
 out_fl.matrix <- as.matrix(out_fl)
-summary(out_fl.matrix)
+```
 
+
+\begin{figure}[h]
+\centering
+\begin{BVerbatim}
+```{r jags_1_summary, results='asis'}
+summary(out_fl)
+```
+\end{BVerbatim}
+\end{figure}
+
+
+```{r jags_1_traceplot, fig.show="hold", out.width="49%", fig.width=5.5}
 traceplot(out_fl)
 ```
+
+
 
 ```{r}
 plot(density(out_fl.matrix[, "mu"]), main = "Comparison R metropolis, Laplace and JAGS distribution for mu", lty = 2)
@@ -816,16 +862,30 @@ jags_wal <- jags.model(
   file = model.file,
   inits = list(list(mu = estim_mu_wal, phi = estim_phi_wal)),
   data = list(n = 425, intervals = intervals, y = wallonia),
-  n.chains = 1
+  n.chains = 1,
+  quiet=T
 )
 
 update(jags_wal, 1000)
 
 out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000)
 out_wal.matrix <- as.matrix(out_wal)
+```
+
+\begin{figure}[h]
+\centering
+\begin{BVerbatim}
+```{r jags_2_summary, results='asis'}
 summary(out_wal)
+```
+\end{BVerbatim}
+\end{figure}
+
+
+```{r jags_2_traceplot, fig.show="hold", out.width="49%", fig.width=5.5}
 traceplot(out_wal)
 ```
+
 
 # Question 8
 
@@ -834,12 +894,12 @@ The ultimate goal of this work is comparing the households income divergence bet
 ```{r}
 plot(density(out_fl.matrix[, "mu"]),
   main = "Comparison between Flanders and Wallonia Net Income households",
-  lty = 2, xlim = c(2800, 3500), xlab = "Net Income household (euro)", col = 2, lwd = 2
+  lty = 1, xlim = c(2800, 3500), xlab = "Net Income household (euro)", col = 2, lwd = 2
 )
-legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2, 4), lwd = 2, lty = c(2, 1))
+legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2, 4), lwd = 2, lty = 1)
 lines(density(out_wal.matrix[, "mu"]), col = 4, lwd = 2)
 ```
-There is a ```r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)``` eur difference on average. However, a large part of the density seems to overlap. The density of their difference is shown below along with a $95\%$ qunatile based and HPD credible intervals:
+There is a `r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)`€ difference on average. However, a large part of the density seems to overlap. The density of their difference is shown below along with a $95\%$ quantile based and HPD credible intervals:
 
 ```{r}
 library(latex2exp)
