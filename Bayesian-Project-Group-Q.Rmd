@@ -6,9 +6,9 @@ title: "LSTAT2130 - Bayesian Statistics"
 subtitle: "Project - Group Q"
 
 authors:
+  - "Adrien Kinart - xxxx-xxxx"
   - "Lionel Lamy - 1294-1700"
-  - "Adrien Kinart"
-  - "Simon Lengendre"
+  - "Simon Lengendre - xxxx-xxxx"
 
 # If multiple authors: - "Lionel Lamy - 1294-1700" is prettier.
 
@@ -53,29 +53,34 @@ always_allow_html: true
 knitr::opts_chunk$set(
   cache = TRUE,
   echo = F,
-  eval = T,	
-  	
-  warning = F,	
+  eval = T,
+
+  warning = F,
   message = F,
-  
-  	
-  out.width= "80%",
-  fig.align = "center",	
+
+
+  out.width = "80%",
+  fig.align = "center",
   fig.path = "resources/figs/",
-  
-  tidy=TRUE,
-  tidy.opts=list(width.cutoff=70)
-)	
+
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 70)
+)
 ```
 
 # Introduction {.unlisted .unnumbered}
 
 ```{r}
-library(EnvStats)
-library(mnormt)
-library(coda)
+# Require the necessary packages
+
+if(!require(mnormt)){ install.packages("mnormt"); require(mnormt)}
+if(!require(EnvStats)){ install.packages("EnvStats"); require(EnvStats)}
+if(!require(R2WinBUGS)){ install.packages("R2WinBUGS"); require(R2WinBUGS)}
+if(!require(coda)){ install.packages("coda"); require(coda)}
+if(!require(rjags)){ install.packages("rjags"); require(rjags)}
 ```
 
+<!--  -->
 
 In this work, the Net Monthly Income (HNI) of household older than 30 years is studied across the two Belgian regions. These regions are denoted by \(k=\{1,2\}\) with respect to Flanders and Wallonia, respectively. The 1228 households were listed with respect to 10 income intervals. The detailed frequency table is given below:
 
@@ -104,84 +109,99 @@ In this work, the Net Monthly Income (HNI) of household older than 30 years is s
 \end{table}
 
 Let \(X\) be the HNI regardless the 2 regions , it is assumed it follows a Gamma distribution with parameters $\kappa$ and $\lambda$. It can be reparametrised in terms of its mean \(\mu\) and dispersion parameter \(\phi\) with the following trick:
+
 $$
 \begin{split}
 \text{shape: } \kappa & = \frac{1}{\phi} \\
 \text{rate: } \lambda & = \frac{1}{\phi\; \mu}
 \end{split}
 $$
-By assuming the gamma distribution, one can plot their experimental histogram and plot the theoretical density plot by estimating the shape and rate parameters with Maximum of Likelihood. This allows to get a first sight on the data behaviour at hand.
+By assuming the gamma distribution, one can plot their experimental histogram and plot the theoretical density plot by estimating the shape and rate parameters with Maximum of Likelihood. This allows to get a first sight on the data behavior at hand.
 
 \begin{table}[h]
 \centering
-\caption {Estimated $\mu$ and $\phi$ for Flanders and Wallonia}
+
 \begin{tabular}{lllll}
-                              & Flanders  & Wallonia &  &  \\ \cline{1-4}
+& Flanders  & Wallonia &  &  \\ \cline{1-4}
 $\hat\mu$  & 3089.944 & 2914.882 &  &  \\
 $\hat\phi$ & 0.399687 & 0.471615 &  &  \\
-                              &          &          &  & 
 \end{tabular}
+\caption {Estimated $\mu$ and $\phi$ for Flanders and Wallonia}
 \end{table}
 
 ```{r matrix_setup}
-Table <- matrix(data= c(25,69, 65,106, 80,106,136,94,76,46,
-                       17,36, 47,58 , 47,53 ,59 ,54,33,21),
-                nrow = 2, byrow = T)
-rownames(Table) <- c("Flanders", "Wallonia") 
-colnames(Table) <- c("<1200", "[1200-1500)", "1500-1800", "1800-2300", "2300-2700",
-                     "2700-3300", "3300-4000", "4000-4900", "4900-6000", ">6000")
-Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, 1e10)
+Table <- matrix(
+  data = c(
+    25, 69, 65, 106, 80, 106, 136, 94, 76, 46,
+    17, 36, 47, 58, 47, 53, 59, 54, 33, 21
+  ),
+  nrow = 2, byrow = T
+)
+rownames(Table) <- c("Flanders", "Wallonia")
+colnames(Table) <- c(
+  "<1200", "[1200-1500)", "1500-1800", "1800-2300", "2300-2700",
+  "2700-3300", "3300-4000", "4000-4900", "4900-6000", ">6000"
+)
+Intervals <- c(0, 1200, 1500, 1800, 2300, 2700, 3300, 4000, 4900, 6000, 1e10)
 
-NbFlemish <-  sum(Table[1,])
-NbWaWalloons <-sum(Table[2,])  
+NbFlemish <- sum(Table[1, ])
+NbWaWalloons <- sum(Table[2, ])
 ```
 
 ```{r functions_setup}
-kappaFct <- function(phi){1/phi}
-lambdaFct <- function(phi,mu){1/(phi*mu)}
+kappaFct <- function(phi) {
+  1 / phi
+}
+lambdaFct <- function(phi, mu) {
+  1 / (phi * mu)
+}
 ```
 
 ```{r flanders_wallonia, fig.align="center", fig.height=6, fig.width=15}
 library(latex2exp)
-par(mfrow=c(1,2))
+par(mfrow = c(1, 2))
 # Flanders
-Fl <- c(rep(1200,25), rep(1350,69), rep((1500+1800)/12,65), rep((1800+2300)/2,106),rep((2300+2700)/2,80), rep(3000,106),
-        rep((3300+4000)/2,136), rep(4450,94),rep((4900+6000)/2,76), rep(6000,46))
+Fl <- c(
+  rep(1200, 25), rep(1350, 69), rep((1500 + 1800) / 2, 65), rep((1800 + 2300) / 2, 106), rep((2300 + 2700) / 2, 80), rep(3000, 106),
+  rep((3300 + 4000) / 2, 136), rep(4450, 94), rep((4900 + 6000) / 2, 76), rep(6000, 46)
+)
 
-Estimation_Fl <-  egamma(Fl)
+Estimation_Fl <- egamma(Fl)
 Estimated_kappa_Fl <- Estimation_Fl$parameters["shape"]
-Estimated_lambda_Fl <- 1/Estimation_Fl$parameters["scale"]
-Estimated_mu_Fl <- Estimated_kappa_Fl/Estimated_lambda_Fl
+Estimated_lambda_Fl <- 1 / Estimation_Fl$parameters["scale"]
+Estimated_mu_Fl <- Estimated_kappa_Fl / Estimated_lambda_Fl
 
-Estimated_phi_Fl <- 1/Estimated_kappa_Fl
+Estimated_phi_Fl <- 1 / Estimated_kappa_Fl
 
-estimGamma_Fl <- rgamma(10000,Estimated_kappa_Fl,Estimated_lambda_Fl)
-hist(Fl, probability = T, xlim = c(-500,7000), main = TeX(r'(Histogram of Flanders and gamma distribution with parameters $\hat{\mu_{Fl}}$ and $\hat{\phi_{Fl}}$)'), xlab = "Flanders")
-curve(dgamma(x,Estimated_kappa_Fl,Estimated_lambda_Fl), add = TRUE)
+estimGamma_Fl <- rgamma(10000, Estimated_kappa_Fl, Estimated_lambda_Fl)
+hist(Fl, probability = T, xlim = c(-500, 7000), main = TeX("(Histogram of Flanders and gamma distribution with parameters $\\hat{\\mu_{Fl}}$ and $\\hat{\\phi_{Fl}}$)"), xlab = "Flanders")
+curve(dgamma(x, Estimated_kappa_Fl, Estimated_lambda_Fl), add = TRUE)
 
 # Wallonia
-Wall <- c(rep(1200,17), rep(1350,36), rep((1500+1800)/12,47), rep((1800+2300)/2,58),rep((2300+2700)/2,47), rep(3000,53),
-        rep((3300+4000)/2,59), rep(4450,54),rep((4900+6000)/2,33), rep(6000,21))
+Wall <- c(
+  rep(1200, 17), rep(1350, 36), rep((1500 + 1800) / 12, 47), rep((1800 + 2300) / 2, 58), rep((2300 + 2700) / 2, 47), rep(3000, 53),
+  rep((3300 + 4000) / 2, 59), rep(4450, 54), rep((4900 + 6000) / 2, 33), rep(6000, 21)
+)
 
 
-Estimation_Wall <-  egamma(Wall)
+Estimation_Wall <- egamma(Wall)
 Estimated_kappa_Wal <- Estimation_Wall$parameters["shape"]
-Estimated_lambda_Wal <- 1/Estimation_Wall$parameters["scale"]
-Estimated_mu_Wal <- Estimated_kappa_Wal/Estimated_lambda_Wal
-Estimated_phi_Wal <- 1/Estimated_kappa_Wal
-estimGamma_Wal <- rgamma(10000,Estimated_kappa_Wal,Estimated_lambda_Wal)
-hist(Wall, probability = T, xlim = c(-500,7000), main = TeX(r'(Histogram of Wallonia and gamma distribution with parameters $\hat{\mu_{Wal}}$ and $\hat{\phi_{Wal}}$)'), xlab = "Wallonia")
-curve(dgamma(x,Estimated_kappa_Wal,Estimated_lambda_Wal), add = TRUE)
-
+Estimated_lambda_Wal <- 1 / Estimation_Wall$parameters["scale"]
+Estimated_mu_Wal <- Estimated_kappa_Wal / Estimated_lambda_Wal
+Estimated_phi_Wal <- 1 / Estimated_kappa_Wal
+estimGamma_Wal <- rgamma(10000, Estimated_kappa_Wal, Estimated_lambda_Wal)
+hist(Wall, probability = T, xlim = c(-500, 7000), main = TeX("(Histogram of Wallonia and gamma distribution with parameters $\\hat{\\mu_{Wal}}$ and $\\hat{\\phi_{Wal}}$)"), xlab = "Wallonia")
+curve(dgamma(x, Estimated_kappa_Wal, Estimated_lambda_Wal), add = TRUE)
 ```
 
 ```{r JustAnExample}
-muExample <- 2500; phiExample <- 1
+muExample <- 2500
+phiExample <- 1
 kappaExample <- kappaFct(phiExample)
-lambdaExample <- lambdaFct(muExample,phiExample)
+lambdaExample <- lambdaFct(muExample, phiExample)
 
-#pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
-#dgamma(2700, kappaExample, lambdaExample)
+# pgamma(2700,kappaExample,lambdaExample)-pgamma(2300,kappaExample,lambdaExample)
+# dgamma(2700, kappaExample, lambdaExample)
 ```
 
 
@@ -282,7 +302,7 @@ where $y_{k,j}$ is the frequency of households in the interval j in the region k
 
 \newpage
 
-# Question 2 : Prior beliefs
+# Question 2
 
 ## Prior for the mean
 
@@ -294,13 +314,13 @@ Prior to the study, the average net monthly household income, regardless the reg
 n <- 10000
 moyenne <- numeric(n)
 for (i in 1:n) {
-  moyenne[i] <- mean(rgamma(1000,Estimated_kappa_Fl,Estimated_lambda_Fl), ylim=c(0,0.0065))
+  moyenne[i] <- mean(rgamma(1000, Estimated_kappa_Fl, Estimated_lambda_Fl), ylim = c(0, 0.0065))
 }
 
-hist(moyenne, probability = T, breaks = 30, main= '', xlab = '')
-legend("topleft", legend=c('Estimated density' , 'Esimated normal density' ), col= c('red','blue'), lty = 1, cex=0.8)
-lines(density(moyenne), col= 'red', lwd=2)
-curve(dnorm(x,mean = mean(moyenne), sd=sd(moyenne)), add = T, col='blue', lwd=2)
+hist(moyenne, probability = T, breaks = 30, main = "", xlab = "")
+legend("topleft", legend = c("Estimated density", "Esimated normal density"), col = c("red", "blue"), lty = 1, cex = 0.8)
+lines(density(moyenne), col = "red", lwd = 2)
+curve(dnorm(x, mean = mean(moyenne), sd = sd(moyenne)), add = T, col = "blue", lwd = 2)
 ```
 
 \vspace{+2em}
@@ -357,7 +377,7 @@ Since there is no prior information on the dependence structure of the priors, i
 
 # Question 3
 
-## Question 3.a: Posterior for Flanders
+## (a) Joint posterior for Flanders
 
 Since the likelihood and prior for $\mu_k$ and $\phi_k$ have been defined, a joint posterior can be expressed as their product. The joint posterior for Flanders, i.e. of $\theta_1 = (\mu_1,\phi_1)$ is defined, up to a multiplicative constant, here below:
 
@@ -368,7 +388,7 @@ Since the likelihood and prior for $\mu_k$ and $\phi_k$ have been defined, a joi
   \end{split}
 \end{equation*}
 
-## 3.b: Compute log-posterior
+## (b) Write function lpost
 
 Computing the logarithm of this expression, we find the log likelihood posterior, which is, up to an additive constant:
 
@@ -386,18 +406,21 @@ Replacing the log-likelihood and log of the prior by their expression (see Equat
 This expression has been implemented in R by not considering the constant term.
 
 ```{r}
-lpostold <- function(theta,freq){
-  Intervals <- c(0,1200,1500,1800, 2300,2700,3300,4000,4900,6000, Inf) # length =11. J'ai rajouté INFINI
-  mu <- theta[1] ; phi <- theta[2]
-  kappa <- 1/phi ; lambda <- 1/(phi*mu)
+lpostold <- function(theta, freq) {
+  Intervals <- c(0, 1200, 1500, 1800, 2300, 2700, 3300, 4000, 4900, 6000, Inf) # length =11. J'ai rajouté INFINI
+  mu <- theta[1]
+  phi <- theta[2]
+  kappa <- 1 / phi
+  lambda <- 1 / (phi * mu)
   n <- length(freq)
   # intialisation
   LL <- 0
-  
+
   for (i in 1:n) {
-    LL <- LL + freq[i] *log(pgamma(Intervals[i+1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))}
-  
-  logPost <-  LL + dnorm(mu, mean = mu_prior , sd = sigma_prior, log=T)   +  dunif(phi, min=0, max=10, log = T) # /!\ mu_prior et sigma_prior doivent avoir été determiné plus haut
+    LL <- LL + freq[i] * log(pgamma(Intervals[i + 1], kappa, lambda) - pgamma(Intervals[i], kappa, lambda))
+  }
+
+  logPost <- LL + dnorm(mu, mean = mu_prior, sd = sigma_prior, log = T) + dunif(phi, min = 0, max = 10, log = T) # /!\ mu_prior et sigma_prior doivent avoir été determiné plus haut
   return(logPost)
 }
 ```
@@ -405,41 +428,45 @@ lpostold <- function(theta,freq){
 
 ```{r, echo=T}
 # Intervals of the frequency table
-intervals = c(0, 1200,1500,1800,2300,2700,3300,4000,4900,6000, Inf)
+intervals <- c(0, 1200, 1500, 1800, 2300, 2700, 3300, 4000, 4900, 6000, Inf)
 
 # Utility function to compute the prob of being between high and low
-pgammadiff = function(low, high, kappa, lambda){
+pgammadiff <- function(low, high, kappa, lambda) {
   pgamma(high, kappa, lambda) - pgamma(low, kappa, lambda)
 }
 
 # Utility fonctions (already defined in the setup)
-kappa = function(phi){1/phi}
-lambda = function(phi, mu) {1/(phi*mu)}
+kappa <- function(phi) {
+  1 / phi
+}
+lambda <- function(phi, mu) {
+  1 / (phi * mu)
+}
 
-mu_prior = 3000
-sigma_prior = 306.12
-lpost = function(theta, freq){
+mu_prior <- 3000
+sigma_prior <- 306.12
+lpost <- function(theta, freq) {
   # Transform mu and phi -> kappa and lambda
-  kappa = kappa(theta[2])
-  lambda = lambda(theta[2], theta[1])
-  
+  kappa <- kappa(theta[2])
+  lambda <- lambda(theta[2], theta[1])
+
   # Likelihood : sum_j^n[x_j * ln(probability_of_being_in_interval_j)]
-  LL = sum(sapply(1:length(freq), function (j){
-      freq[j] * log(pgammadiff(low=intervals[j], high=intervals[j+1], kappa, lambda))
+  LL <- sum(sapply(1:length(freq), function(j) {
+    freq[j] * log(pgammadiff(low = intervals[j], high = intervals[j + 1], kappa, lambda))
   }))
-  
+
   # Log posterior
-  lpi = dnorm(theta[1], mu_prior, sigma_prior, log=T) + dunif(theta[2], 0, 10, log=T)
-  lpost = LL + lpi
-  
-  names(lpost) = "lpost"
+  lpi <- dnorm(theta[1], mu_prior, sigma_prior, log = T) + dunif(theta[2], 0, 10, log = T)
+  lpost <- LL + lpi
+
+  names(lpost) <- "lpost"
   return(lpost)
 }
 ```
 
 \newpage
 
-# 4. 
+# Question 4
 
 ## Estimation 
 Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is unimodale then, if it is normally distributed, then the mode=mean, which means that the mean can be found by optimizing the log-likelihood with respect to its parameters. (aussi assumer $\mu$ et $\phi$ indépendant?? ), then blablabla (expliquez avec hessienne). 
@@ -448,10 +475,10 @@ Start from the log-posterior $h(\mu_k, \phi_k)$. One assumes the distribution is
 Based on http://www.sumsar.net/blog/2013/11/easy-laplace-approximation/#:~:text=Laplace%20Approximation%20of%20Posterior%20Distributions&text=Laplace%20approximation%20is%20a%20method,the%20posterior%20at%20the%20mode. 
 
 
-### Flanders
+### Flanders {-}
 ```{r}
-inits_Fl <- c(mu = Estimated_mu_Fl , phi = Estimated_phi_Fl)
-fit_Fl <- optim(inits_Fl, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[1,] )
+inits_Fl <- c(mu = Estimated_mu_Fl, phi = Estimated_phi_Fl)
+fit_Fl <- optim(inits_Fl, lpost, control = list(fnscale = -1), hessian = TRUE, freq = Table[1, ])
 param_mean_Fl <- fit_Fl$par
 param_cov_mat_Fl <- solve(-fit_Fl$hessian)
 round(param_mean_Fl, 2)
@@ -461,16 +488,16 @@ round(param_cov_mat_Fl, 3)
 ```{r}
 library(mvtnorm)
 laplace_samples_Fl <- rmvnorm(100000, param_mean_Fl, param_cov_mat_Fl)
-plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
-plot(density(laplace_samples_Fl[,2]), main = 'laplace approximation for phi in Flanders')
+plot(density(laplace_samples_Fl[, 1]), main = "laplace approximation for mu in Flanders")
+plot(density(laplace_samples_Fl[, 2]), main = "laplace approximation for phi in Flanders")
 ```
 
 
-### Wallonia
+### Wallonia {-}
 
 ```{r}
-inits_Wal <- c(mu = Estimated_mu_Wal , phi = Estimated_phi_Wal)
-fit_Wal <- optim(inits_Wal, lpost, control = list(fnscale = -1), hessian = TRUE, freq= Table[2,] )
+inits_Wal <- c(mu = Estimated_mu_Wal, phi = Estimated_phi_Wal)
+fit_Wal <- optim(inits_Wal, lpost, control = list(fnscale = -1), hessian = TRUE, freq = Table[2, ])
 param_mean_Wal <- fit_Wal$par
 param_cov_mat_Wal <- solve(-fit_Wal$hessian)
 round(param_mean_Wal, 2)
@@ -478,39 +505,38 @@ round(param_cov_mat_Wal, 3)
 ```
 ```{r}
 samples_Wal <- rmvnorm(10000, param_mean_Wal, param_cov_mat_Wal)
-plot(density(samples_Wal[,1]), main = 'laplace approximation for mu in Wallonia')
-plot(density(samples_Wal[,2]), main = 'laplace approximation for phi in Wallonia')
+plot(density(samples_Wal[, 1]), main = "laplace approximation for mu in Wallonia")
+plot(density(samples_Wal[, 2]), main = "laplace approximation for phi in Wallonia")
 ```
 
 ## Credible intervals Laplce approximation
 
 ```{r}
-levels <- c(0.1,0.25)
+levels <- c(0.1, 0.25)
 ```
 
-### Flanders
+### Flanders {-}
 The credible region is given here below: 
 
 ```{r}
-plot(x =laplace_samples_Fl[,1] , y = laplace_samples_Fl[,2] , xlab = 'mu', ylab='phi', pch='.')
-x1 <- seq(3400,4000,length=1000)
-y1 <- seq(0.16,0.26, length=1000)
-lpostFl_laplaceApprox <- function(MyMu,MyPhi){ #theta_l = c(mu,phi)
-  MuPhi <-  cbind(MyMu,MyPhi)
-  dmvnorm(MuPhi, colMeans(laplace_samples_Fl), cov(laplace_samples_Fl), log=TRUE)
+plot(x = laplace_samples_Fl[, 1], y = laplace_samples_Fl[, 2], xlab = "mu", ylab = "phi", pch = ".")
+x1 <- seq(3400, 4000, length = 1000)
+y1 <- seq(0.16, 0.26, length = 1000)
+lpostFl_laplaceApprox <- function(MyMu, MyPhi) { # theta_l = c(mu,phi)
+  MuPhi <- cbind(MyMu, MyPhi)
+  dmvnorm(MuPhi, colMeans(laplace_samples_Fl), cov(laplace_samples_Fl), log = TRUE)
 }
 
-z1 <- outer(x1,y1,lpostFl_laplaceApprox)
-R <- exp(z1-max(z1)) 
+z1 <- outer(x1, y1, lpostFl_laplaceApprox)
+R <- exp(z1 - max(z1))
 lvls <- c(0.01, 0.25, 0.5, 0.75, 0.9)
-contour(x1,y1, R, levels = exp(-0.5*qchisq(lvls,2)), add=T, lwd=2, labels = (1-lvls), col = 'red')
-
+contour(x1, y1, R, levels = exp(-0.5 * qchisq(lvls, 2)), add = T, lwd = 2, labels = (1 - lvls), col = "red")
 ```
 ```{r}
 library(MASS)
 library(plotly)
-den3dLaplaceApprox <- kde2d(laplace_samples_Fl[,1], laplace_samples_Fl[,2])
-plot_ly(x=den3dLaplaceApprox$x, y=den3dLaplaceApprox$y, z=den3dLaplaceApprox$z) %>% add_surface()
+den3dLaplaceApprox <- kde2d(laplace_samples_Fl[, 1], laplace_samples_Fl[, 2])
+plot_ly(x = den3dLaplaceApprox$x, y = den3dLaplaceApprox$y, z = den3dLaplaceApprox$z) %>% add_surface()
 ```
 
 
@@ -534,18 +560,20 @@ $$\mu|D \si= N(E(\mu),\sigma_\mu) $$
 We needs that $95\%$ of the marginal posterior to fall into the interval for Flanders:
 ```{r}
 alpha <- 0.05
-marginal_posterior_mu_Fl <- rnorm(10000,param_mean_Fl[1], sqrt(param_cov_mat_Fl[1,1]))
-# Quantile based credible intervals 
-QuantileCI_Laplace_Fl <- quantile(marginal_posterior_mu_Fl, p=c(alpha/1,1-alpha/2))
-# HPD intervals 
-HPDIntervals_Laplace_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1-alpha)
+marginal_posterior_mu_Fl <- rnorm(10000, param_mean_Fl[1], sqrt(param_cov_mat_Fl[1, 1]))
+# Quantile based credible intervals
+QuantileCI_Laplace_Fl <- quantile(marginal_posterior_mu_Fl, p = c(alpha / 1, 1 - alpha / 2))
+# HPD intervals
+HPDIntervals_Laplace_Fl <- HPDinterval(as.mcmc(marginal_posterior_mu_Fl), prob = 1 - alpha)
 
-plot(density(laplace_samples_Fl[,1]), main = 'laplace approximation for mu in Flanders')
-legend("topleft", legend=c("HPD", "quantile-based"),
-       col=c("red", "green"), lty=1:2)
+plot(density(laplace_samples_Fl[, 1]), main = "laplace approximation for mu in Flanders")
+legend("topleft",
+  legend = c("HPD", "quantile-based"),
+  col = c("red", "green"), lty = 1:2
+)
 
-abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col="red", lty=1)
-abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col="green", lty=2)
+abline(v = c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col = "red", lty = 1)
+abline(v = c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col = "green", lty = 2)
 ```
 
 # Question 5
@@ -567,104 +595,104 @@ That being, this gives the following algorithm:
 
 
 ```{r}
-metropolis_algorithm = function(M, theta, sd.propositions, factors, frequencies){
-  
-  theta = as.vector(theta)
-  sd.propositions = as.vector(sd.propositions)
-  factors = as.vector(factors)
-  frequencies = as.vector(frequencies)
+metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies) {
+  theta <- as.vector(theta)
+  sd.propositions <- as.vector(sd.propositions)
+  factors <- as.vector(factors)
+  frequencies <- as.vector(frequencies)
 
-  thetas = array(dim=c(M+1,2))
-  thetas[1,] = theta
+  thetas <- array(dim = c(M + 1, 2))
+  thetas[1, ] <- theta
 
-  accepted = c(0,0)
-  
-  sigma_mu = factors[2]*sd.propositions[1]
-  sigma_phi = factors[2]*sd.propositions[2]
-  
-  for (i in 2:(M+1)){
-    theta_mu = theta_phi = this_theta = thetas[i-1,]
-    
-    theta_mu[1] = this_theta[1] + rnorm(1, 0, sigma_mu)
-    theta_phi[2] = this_theta[2] + rnorm(1, 0, sigma_phi)
-    
-    thresholds = c(
-      min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)),1),
-      min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)),1)
+  accepted <- c(0, 0)
+
+  sigma_mu <- factors[2] * sd.propositions[1]
+  sigma_phi <- factors[2] * sd.propositions[2]
+
+  for (i in 2:(M + 1)) {
+    theta_mu <- theta_phi <- this_theta <- thetas[i - 1, ]
+
+    theta_mu[1] <- this_theta[1] + rnorm(1, 0, sigma_mu)
+    theta_phi[2] <- this_theta[2] + rnorm(1, 0, sigma_phi)
+
+    thresholds <- c(
+      min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)), 1),
+      min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)), 1)
     )
 
-    accepts = runif(2) <= thresholds
-    
-    thetas[i,] = this_theta
-    if(accepts[1]) thetas[i,1] = theta_mu[1]
-    if(accepts[2]) thetas[i,2] = theta_phi[2]
-    
-    accepted = accepted + as.integer(accepts)
+    accepts <- runif(2) <= thresholds
+
+    thetas[i, ] <- this_theta
+    if (accepts[1]) thetas[i, 1] <- theta_mu[1]
+    if (accepts[2]) thetas[i, 2] <- theta_phi[2]
+
+    accepted <- accepted + as.integer(accepts)
   }
-  
-  thetas = thetas[,-0.1*M]
-  
-  names(thetas) = c("mu", "phi")
-  names(accepted) = c("mu", "phi")
-  return(list(theta=thetas, accept_rate=accepted/M))
+
+  thetas <- thetas[, -0.1 * M]
+
+  names(thetas) <- c("mu", "phi")
+  names(accepted) <- c("mu", "phi")
+  return(list(theta = thetas, accept_rate = accepted / M))
 }
 ```
 
 
 ```{r}
 # Sigma_hat to be used: the proposed one is the one from the Laplace approximation: cov(laplace_samples_Fl)
-sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1,1])
-sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2,2])
+sd_hat_of_mu <- sqrt(param_cov_mat_Fl[1, 1])
+sd_hat_of_phi <- sqrt(param_cov_mat_Fl[2, 2])
 M <- 60000
 ```
 
 
 ```{r Metrop1}
-#using starting values as Estimated_mu_Fl and Estimated_phi_Fl that are chosen via MLE
-metro_fl1 = metropolis_algorithm(M, theta=c(mu=3089.94396, phi=0.399687),
-                                sd.propositions = c(mu=sd_hat_of_mu, phi=sd_hat_of_phi),
-                                factors=c(mu=2.75, phi=2.75),
-                                frequencies = Table[1,])
+# using starting values as Estimated_mu_Fl and Estimated_phi_Fl that are chosen via MLE
+metro_fl1 <- metropolis_algorithm(M,
+  theta = c(mu = 3089.94396, phi = 0.399687),
+  sd.propositions = c(mu = sd_hat_of_mu, phi = sd_hat_of_phi),
+  factors = c(mu = 2.75, phi = 2.75),
+  frequencies = Table[1, ]
+)
 ```
 
 
 
 ```{r}
-acceptance_rate_mu_Metrop1 <- metro_fl1$accept_rate["mu"]*100
-cat("Acceptance rate for mu: ",acceptance_rate_mu_Metrop1,"% \n") 
+acceptance_rate_mu_Metrop1 <- metro_fl1$accept_rate["mu"] * 100
+cat("Acceptance rate for mu: ", acceptance_rate_mu_Metrop1, "% \n")
 
-acceptance_rate_phi_Metrop1 <- metro_fl1$accept_rate["phi"]*100
-cat("Acceptance rate for phi: ",acceptance_rate_phi_Metrop1,"% \n") 
-
+acceptance_rate_phi_Metrop1 <- metro_fl1$accept_rate["phi"] * 100
+cat("Acceptance rate for phi: ", acceptance_rate_phi_Metrop1, "% \n")
 ```
 
 ```{r}
 # Remove bur-in samples
-thetasM1 <-  tail(metro_fl1$theta, (-0.1*M))
+thetasM1 <- tail(metro_fl1$theta, (-0.1 * M))
 
-plot(thetasM1[,1], thetasM1[,2], xlab = 'mu', ylab = 'phi')
+plot(thetasM1[, 1], thetasM1[, 2], xlab = "mu", ylab = "phi")
 library(MASS)
 library(plotly)
-den3d <- kde2d(thetasM1[,1], thetasM1[,2])
-plot_ly(x=den3d$x, y=den3d$y, z=den3d$z) %>% add_surface()
+den3d <- kde2d(thetasM1[, 1], thetasM1[, 2])
+plot_ly(x = den3d$x, y = den3d$y, z = den3d$z) %>% add_surface()
 ```
 
 
 ## (b) diagnostic for convergence
 
-### Graphs analysis
+### Graphs analysis {-}
 The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
 ```{r}
-par(mfrow=c(2,1))
+par(mfrow = c(2, 1))
 traceplot(as.mcmc(thetasM1))
 ```
 By doing so, one sees that the mixing seems pretty good. For example, the autocorrelation is significative up to not a too high order. As such, the parameter space of $theta$ does not seem to be visited to slowly. 
 ```{r}
-par(mfrow=c(2,1))
-acf((metro_fl1$theta[,1]), lag.max = 30)
-pacf((metro_fl1$theta[,1]), lag.max = 30)
-acf((metro_fl1$theta[,2]), lag.max = 30)
-pacf((metro_fl1$theta[,2]), lag.max = 30)
+par(mfrow = c(2, 1))
+acf((metro_fl1$theta[, 1]), lag.max = 30)
+pacf((metro_fl1$theta[, 1]), lag.max = 30)
+acf((metro_fl1$theta[, 2]), lag.max = 30)
+pacf((metro_fl1$theta[, 2]), lag.max = 30)
 ```
 Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autocorrelation. 
 ```{r}
@@ -674,40 +702,42 @@ effectiveSize(thetasM1)
 
 
 
-#### Gelman-Rubin 
+### Gelman-Rubin {-}
 
 This method requires multiple chains. In this work, the diagnostic will be done with 2 generated chains with two different starting values. As a second chain, more exotic  values (but still possible , a priori) are proposed for initialization: $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 1000 generations.
 
 ```{r}
-metro_fl2 = metropolis_algorithm(60000, theta=c(mu=4000, phi= 0.1),
-                                sd.propositions = c(mu=sd_hat_of_mu, phi=sd_hat_of_phi),
-                                factors=c(mu=2.75, phi=2.75),
-                                frequencies = Table[1,])
+metro_fl2 <- metropolis_algorithm(60000,
+  theta = c(mu = 4000, phi = 0.1),
+  sd.propositions = c(mu = sd_hat_of_mu, phi = sd_hat_of_phi),
+  factors = c(mu = 2.75, phi = 2.75),
+  frequencies = Table[1, ]
+)
 ```
 
 ```{r}
-par(mfrow=c(2,1))
-traceplot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
+par(mfrow = c(2, 1))
+traceplot(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
 ```
 
 It seems that convergence occurs rather quickly. After a early generations, the chains seem to have similar mean variance. This can be more formally assessed with the Gelman-Rubin statistic that one wishes to be smaller that, say, $1.1$. Here below is shown the estimated statistic along with its upper bond. 
 
 ```{r}
-gelman.diag(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
+gelman.diag(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
 ```
 
 Those are clearly below, which is a good sign of convergence. To see when convergence may have occurred, one could look at the statistic with respect to the number of generations. Here below are presented the statistics, up to 2000 samples:
 
 ```{r}
-gelman.plot(list(mcmc(metro_fl1$theta[1:2000,]), mcmc(metro_fl2$theta[1:2000,])))
-abline(h=1.1, col='green')
+gelman.plot(list(mcmc(metro_fl1$theta[1:2000, ]), mcmc(metro_fl2$theta[1:2000, ])))
+abline(h = 1.1, col = "green")
 ```
 
 Accordingly, the convergence seems to occurs after roughly 1500 observations for both parameters. 
 
 
 
-### Geweke diagnostic
+### Geweke diagnostic {-}
 
 The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, respectively:
 
@@ -718,7 +748,7 @@ geweke.diag(mcmc((thetasM1)))
 To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
 
 ```{r}
-par(mfrow=c(2,1))
+par(mfrow = c(2, 1))
 geweke.plot(mcmc((thetasM1)), nbins = 50)
 ```
 
@@ -730,25 +760,27 @@ Except for one in $\phi$, the hypothesis of same mean in never rejected. There i
 ```{r}
 ## FOR mu in Flanders
 
-HPDmu_metrop_Fl<- HPDinterval(as.mcmc((thetasM1)))[1,]
-CImu_Fl <- quantile(thetasM1[,1], probs = c(alpha/2,1-alpha/2))
-densplot(as.mcmc((thetasM1[,1])), main = "Comparison between Metropolis and Laplace approximation for mu in Flanders" )
-legend("topleft", legend = c("HPD metropolis", "Quantiles Metropolis", "Laplace HPD", "Laplace quantiles"),
-       col=1:4, lty=c(1,1,2,2))
-abline(v=c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col=1)
-abline(v=CImu_Fl, col=2)
-abline(v=c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col=3, lty=2)
-abline(v=c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col=4, lty=2)
+HPDmu_metrop_Fl <- HPDinterval(as.mcmc((thetasM1)))[1, ]
+CImu_Fl <- quantile(thetasM1[, 1], probs = c(alpha / 2, 1 - alpha / 2))
+densplot(as.mcmc((thetasM1[, 1])), main = "Comparison between Metropolis and Laplace approximation for mu in Flanders")
+legend("topleft",
+  legend = c("HPD metropolis", "Quantiles Metropolis", "Laplace HPD", "Laplace quantiles"),
+  col = 1:4, lty = c(1, 1, 2, 2)
+)
+abline(v = c(HPDmu_metrop_Fl[1], HPDmu_metrop_Fl[2]), col = 1)
+abline(v = CImu_Fl, col = 2)
+abline(v = c(HPDIntervals_Laplace_Fl[1], HPDIntervals_Laplace_Fl[2]), col = 3, lty = 2)
+abline(v = c(QuantileCI_Laplace_Fl[1], QuantileCI_Laplace_Fl[2]), col = 4, lty = 2)
 ```
 
 ```{r}
 # Encore à faire, là ça fait de la merde
 library(kableExtra)
-# kable(as.data.frame(matrix(data=cbind(HPDmu_metrop_Fl, CImu_Fl,HPDIntervals_Laplace_Fl, QuantileCI_Laplace_Fl) 
+# kable(as.data.frame(matrix(data=cbind(HPDmu_metrop_Fl, CImu_Fl,HPDIntervals_Laplace_Fl, QuantileCI_Laplace_Fl)
 #                            , nrow = 2)))
 ```
 
-# Question 6 : same question as 5 but with JAGS
+# Question 6
 
 ```{r}
 require(R2WinBUGS)
@@ -757,68 +789,73 @@ require(rjags)
 ```
 
 ```{r jags_model_definition}
-metro_model = function(){
-  kappa <- 1/phi
-  lambda <- 1/(phi*mu)
-  
-  for (i in 1:10){
-    pi[i] <- pgamma(intervals[i+1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)}
-  
+metro_model <- function() {
+  kappa <- 1 / phi
+  lambda <- 1 / (phi * mu)
+
+  for (i in 1:10) {
+    pi[i] <- pgamma(intervals[i + 1], kappa, lambda) - pgamma(intervals[i], kappa, lambda)
+  }
+
   # Likelihood
   y ~ dmulti(pi, n)
-  
+
   # Priors
-  mu ~ dnorm(3000, pow(306.12,-2))
+  mu ~ dnorm(3000, pow(306.12, -2))
   phi ~ dunif(0, 10)
 }
 
-model.file = "resources/metropolis.bug"
+model.file <- "resources/metropolis.bug"
 write.model(metro_model, model.file)
 ```
 
 
 ```{r jags_model_executionFlanders}
-model.file = "resources/metropolis.bug"
+model.file <- "resources/metropolis.bug"
 
 # Test with Flanders
-jags_fl = jags.model(file=model.file, 
-                 inits=list(list(mu=3089.94396, phi=0.399687)), 
-                 data=list(n=803, intervals=intervals, y = Table[1,]), 
-                 n.chains=1)
+jags_fl <- jags.model(
+  file = model.file,
+  inits = list(list(mu = 3089.94396, phi = 0.399687)),
+  data = list(n = 803, intervals = intervals, y = Table[1, ]),
+  n.chains = 1
+)
 
 update(jags_fl, 1000)
 
-out_fl = coda.samples(model=jags_fl, c("mu", "phi"), n.iter=50000)
-out_fl.matrix = as.matrix(out_fl)
+out_fl <- coda.samples(model = jags_fl, c("mu", "phi"), n.iter = 50000)
+out_fl.matrix <- as.matrix(out_fl)
 summary(out_fl.matrix)
 
 traceplot(out_fl)
 ```
 
 ```{r}
-plot(density(out_fl.matrix[,"mu"]), main= "Comparison R metropolis, Laplace and JAGS distribution for mu", lty=2)
-lines(density(thetasM1[,1]), col='red', lty=2)
-lines(density(laplace_samples_Fl[,1]), col='blue', lty=2)
+plot(density(out_fl.matrix[, "mu"]), main = "Comparison R metropolis, Laplace and JAGS distribution for mu", lty = 2)
+lines(density(thetasM1[, 1]), col = "red", lty = 2)
+lines(density(laplace_samples_Fl[, 1]), col = "blue", lty = 2)
 
-plot(density(out_fl.matrix[,"phi"]), main= "Comparison R metropolis, Laplace and JAGS distribution for phi", lty=2)
-lines(density(thetasM1[,2]), col='red', lty=2)
-lines(density(laplace_samples_Fl[,2]), col='blue', lty=2)
+plot(density(out_fl.matrix[, "phi"]), main = "Comparison R metropolis, Laplace and JAGS distribution for phi", lty = 2)
+lines(density(thetasM1[, 2]), col = "red", lty = 2)
+lines(density(laplace_samples_Fl[, 2]), col = "blue", lty = 2)
 ```
 
-# Question 7: same but for Wallonia 
+# Question 7
 ```{r jags_model_executionWaallonia}
-model.file = "resources/metropolis.bug"
+model.file <- "resources/metropolis.bug"
 
 # Test with Wallonia
-jags_wal = jags.model(file=model.file, 
-                 inits=list(list(mu=2914.882, phi=0.471615)), 
-                 data=list(n=425, intervals=intervals, y = Table[2,]), 
-                 n.chains=1)
+jags_wal <- jags.model(
+  file = model.file,
+  inits = list(list(mu = 2914.882, phi = 0.471615)),
+  data = list(n = 425, intervals = intervals, y = Table[2, ]),
+  n.chains = 1
+)
 
 update(jags_wal, 1000)
 
-out_wal = coda.samples(model=jags_wal, c("mu", "phi"), n.iter=50000)
-out_wal.matrix = as.matrix(out_wal)
+out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000)
+out_wal.matrix <- as.matrix(out_wal)
 summary(out_wal)
 ```
 
@@ -826,24 +863,28 @@ summary(out_wal)
 traceplot(out_wal)
 ```
 
-# Question 8: Credible interval for means difference
+# Question 8
 
 The ultimate goal of this work is comparing the households income divergence between Flanders and Wallonia given some a priori and after a experimental study through $1228$ Belgian households. To do so, $50000$ samples have been generated through the metropolis algorithm for Flanders and its French-talking counterpart. Their estimated density is jointly represented here below:
 ```{r}
-plot(density(out_fl.matrix[,"mu"]), main= "Comparison between Flanders and Wallonia Net Income households",
-     lty=2, xlim=c(2800, 3500), xlab = "Net Income household (euro)", col=2, lwd=2)
-legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2,4), lwd = 2, lty = c(2,1))
-lines(density(out_wal.matrix[,"mu"]), col=4, lwd=2)
+plot(density(out_fl.matrix[, "mu"]),
+  main = "Comparison between Flanders and Wallonia Net Income households",
+  lty = 2, xlim = c(2800, 3500), xlab = "Net Income household (euro)", col = 2, lwd = 2
+)
+legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2, 4), lwd = 2, lty = c(2, 1))
+lines(density(out_wal.matrix[, "mu"]), col = 4, lwd = 2)
 ```
 There is a ```r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)``` eur difference on average. However, a large part of the density seems to overlap. The density of their difference is shown below along with a $95\%$ qunatile based and HPD credible intervals:
 ```{r}
 library(latex2exp)
-diff_of_mu <- out_fl.matrix[,1] - out_wal.matrix[,1]
-plot(density(diff_of_mu), main = "Difference of Net Income between Flanders and Wallonia",
-     xlab = TeX(r'($\hat{\mu}_1 - \hat{\mu}_2$)'), cex.main= 0.9, lwd=2)
-legend("topleft", legend = c("95% Quantile-based intervals", "95% HPD intervals"), col = c('red', 'blue') , lty=2:3, cex=0.7, lwd=3)
-abline(v=quantile(diff_of_mu, probs=c(0.025,0.975)), col= 'red' , lty=2, lwd=3)
-abline(v= HPDinterval(as.mcmc(diff_of_mu)), col='blue', lty=3, lwd=3)
+diff_of_mu <- out_fl.matrix[, 1] - out_wal.matrix[, 1]
+plot(density(diff_of_mu),
+  main = "Difference of Net Income between Flanders and Wallonia",
+  xlab = TeX("($\\hat{\\mu}_1 - \\hat{\\mu}_2$)"), cex.main = 0.9, lwd = 2
+)
+legend("topleft", legend = c("95% Quantile-based intervals", "95% HPD intervals"), col = c("red", "blue"), lty = 2:3, cex = 0.7, lwd = 3)
+abline(v = quantile(diff_of_mu, probs = c(0.025, 0.975)), col = "red", lty = 2, lwd = 3)
+abline(v = HPDinterval(as.mcmc(diff_of_mu)), col = "blue", lty = 3, lwd = 3)
 ```
 On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the income is different from one another. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
 
@@ -866,4 +907,5 @@ library(formatR)
 ```
 
 ```{r appendix_code, eval=FALSE, echo=TRUE, ref.label=knitr::all_labels(appendix==T)}
+
 ```
