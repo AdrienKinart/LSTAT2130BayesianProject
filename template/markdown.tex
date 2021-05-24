@@ -33,10 +33,11 @@ $if(highlighting-macros)$
 
 % Highlighting customized
 
+\usepackage{fvextra}
 \usepackage{fancyvrb}
 \newcommand{\VerbBar}{|}
 \newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{xleftmargin=1em,commandchars=\\\{\}, fontsize=\small, numberblanklines=false,numbersep=.5em}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{xleftmargin=0.5em,commandchars=\\\{\}, fontsize=\small, numberblanklines=false,numbersep=.5em,breaklines=true, breakanywhere=true, breakanywheresymbolpost=, breaksymbolleft=}
 % Add ',fontsize=\small' for more characters per line
 \usepackage{framed}
 \definecolor{shadecolor}{RGB}{248,248,248}

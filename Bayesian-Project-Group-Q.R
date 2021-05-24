@@ -7,6 +7,8 @@ if(!require(R2WinBUGS)){ install.packages("R2WinBUGS"); require(R2WinBUGS)}
 if(!require(coda)){ install.packages("coda"); require(coda)}
 if(!require(rjags)){ install.packages("rjags"); require(rjags)}
 
+# ==========================
+
 # Setup of the table
 
 data <- matrix(
@@ -36,6 +38,8 @@ pgammadiff = function(low, high, kappa, lambda){
   pgamma(high, kappa, lambda) - pgamma(low, kappa, lambda)
 }
 
+# ==========================
+
 # Utility fonctions
 kappa = function(phi){1/phi}
 lambda = function(phi, mu) {1/(phi*mu)}
@@ -61,3 +65,6 @@ estim_params_wal <- obtain_the_estimated_parameters(10000, 2)
 
 estim_mu_fl <- estim_params_fl$mu ; estim_phi_fl <- estim_params_fl$phi; estim_fl <- estim_params_fl$sim
 estim_mu_wal <- estim_params_wal$mu ; estim_phi_wal <- estim_params_wal$phi; estim_wal <- estim_params_wal$sim
+
+# ==========================
+
