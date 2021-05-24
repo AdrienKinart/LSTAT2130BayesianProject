@@ -6,9 +6,9 @@ title: "LSTAT2130 - Bayesian Statistics"
 subtitle: "Project - Group Q"
 
 authors:
-  - "Adrien Kinart - xxxx-xxxx"
+  - "Adrien Kinart - 0424-1400"
   - "Lionel Lamy - 1294-1700"
-  - "Simon Lengendre - xxxx-xxxx"
+  - "Simon Legendre - 6433-2000"
 
 # If multiple authors: - "Lionel Lamy - 1294-1700" is prettier.
 
@@ -45,6 +45,7 @@ output:
     template: template/markdown.tex
     toc: true
     toc_depth: 3
+    keep_tex: true
     
 always_allow_html: true
 ---
@@ -205,8 +206,8 @@ estim_wal <- estim_params_wal$sim
 
 \begin{tabular}{lllll}
 & Flanders  & Wallonia &  &  \\ \cline{1-4}
-$\hat\mu$  & `r estim_mu_fl` & `r estim_mu_wal` &  &  \\
-$\hat\phi$ & `r estim_phi_fl` & `r estim_phi_wal` &  &  \\
+$\hat\mu$  & `r round(estim_mu_fl, 3)` & `r round(estim_mu_wal, 3)` &  &  \\
+$\hat\phi$ & `r round(estim_phi_fl, 3)` & `r round(estim_phi_wal, 3)` &  &  \\
 \end{tabular}
 \caption {Estimated $\mu$ and $\phi$ for Flanders and Wallonia}
 \end{table}
@@ -494,18 +495,20 @@ laplace_fl.mcmc <- mcmc(laplace_fl$samples)
 
 ```
 
-A summary of the data generated is shown here below:
-\begin{figure}[h]
-\hspace{-2.5em}
-\begin{BVerbatim}
-```{r laplace_summary, results='asis', appendix=TRUE}
-summary(laplace_fl.mcmc)
+A summary of the data generated is available in [appendix](#S1).
 
-```
-\end{BVerbatim}
-\end{figure}
 
 ## Credible intervals Laplace approximation
+
+```{r credible_intervals_laplace, appendix=TRUE}
+# Credible intervals of Laplace (HPD vs QB)
+marginal_post_Fl <- rnorm(1e6, laplace_fl$parameters["mu"], sqrt(laplace_fl$cov[1, 1]))
+
+QB_LP <- quantile(marginal_post_Fl, probs = c(alpha / 2, 1 - alpha / 2))
+HPD_LP <- HPDinterval(as.mcmc(marginal_post_Fl), prob = 1 - alpha)
+
+```
+
 
 <!-- ```{r, eval=F} -->
 <!-- library(MASS) -->
@@ -515,7 +518,6 @@ summary(laplace_fl.mcmc)
 <!-- ``` -->
 
 To get the credible interval for $\mu_1$,  the marginal posterior distribution of $\mu_1$ is needed. It is given by :
-
 $$
 P(\mu_1| Y_1) \propto \int p(\mu_1, \phi_1 |Y_1)\ \diff \phi_1
 $$
@@ -524,15 +526,9 @@ It can be shown that the marginal (univariate) distribution of the bivariate Gau
 $$
 \mu_1|Y_1 \sim  N\big(E(\mu_1),\sigma_{\mu_1}\big) 
 $$
-Accordingly, a 95\% quantile based or HPD based can be easily taken from the generated samples.  This is shown in the following graph where the marginal distribution of the mean for Flanders is plotted. 
-
-```{r credible_intervals_laplace, appendix=TRUE}
-# Credible intervals of Laplace (HPD vs QB)
-marginal_post_Fl <- rnorm(1e6, laplace_fl$parameters["mu"], sqrt(laplace_fl$cov[1, 1]))
-
-QB_LP <- quantile(marginal_post_Fl, probs = c(alpha / 2, 1 - alpha / 2))
-HPD_LP <- HPDinterval(as.mcmc(marginal_post_Fl), prob = 1 - alpha)
-
+Accordingly, a 95\% quantile based or HPD based can be easily taken from the generated samples.  The interval based on the quantile is [`r c(round(QB_LP[1]), round(QB_LP[2]))`] , while the one based on the highest posterior density is [`r c(round(HPD_LP[1]), round(HPD_LP[2]))`]. Those are shown in the following graph where the marginal distribution of the mean for Flanders is plotted.
+\vspace{-1em}
+```{r credible_intervals_laplace_plot, fig.height=4.3, appendix=TRUE}
 plot(density(laplace_fl$samples[, 1]), main = expression(paste("Laplace approximation for ", mu[Fl])), sub = expression(paste(alpha, " = ", 0.05)))
 legend("topleft",
   legend = c("HPD", "Quantiles"),
@@ -543,8 +539,6 @@ abline(v = c(HPD_LP[1], HPD_LP[2]), col = "red", lty = 1)
 abline(v = c(QB_LP[1], QB_LP[2]), col = "blue", lty = 2)
 
 ```
-
-The interval based on the quantile is [`r c(round(QB_LP[1],2), round(QB_LP[2],2))`] , while the quantile based on the highest posterior density is [`r c(round(HPD_LP[1],2), round(HPD_LP[2],2))`]. Those are really close.
 
 # Question 5
 
@@ -564,7 +558,10 @@ That being, this gives the following algorithm:
     + Set $\phi_t = \phi_{\text{prop}}$ with probability $prob_\phi$, $\phi_t = \phi_{t-1}$ otherwise.
     + Set $\theta_t = (\mu_t, \phi_t)$
 
-```{r metropolis_algorithm, appendix=TRUE}
+
+Which, in R gives the following code:
+
+```{r metropolis_algorithm, echo=T, appendix=TRUE}
 # Metropolis algorithm, mu and phi updated one at the time
 metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies) {
   theta <- as.vector(theta)
@@ -590,17 +587,14 @@ metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies
       min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)), 1),
       min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)), 1)
     )
-
+    
     accepts <- runif(2) <= thresholds
-
+    
     thetas[i, ] <- this_theta
     if (accepts[1]) thetas[i, 1] <- theta_mu[1]
     if (accepts[2]) thetas[i, 2] <- theta_phi[2]
-
     accepted <- accepted + as.integer(accepts)
   }
-
-  # thetas <- thetas[, -0.1 * M]
 
   colnames(thetas) <- c("mu", "phi")
   names(accepted) <- c("mu", "phi")
@@ -624,7 +618,7 @@ metro_fl1 <- metropolis_algorithm(5e4,
     mu = sd_hat_mu,
     phi = sd_hat_phi
   ),
-  factors = c(mu = 2.74, phi = 2.75),
+  factors = c(mu = 2.75, phi = 2.75),
   frequencies = flanders
 )
 
@@ -634,12 +628,17 @@ metro_fl1.theta.mcmc <- as.mcmc(metro_fl1.theta)
 
 ```
 
-```{r acceptance_rate_metropolis_1, results='', appendix=TRUE}
-# Check acceptance rate (aim : 40%)
-cat("Acceptance rate for mu: ", metro_fl1$accept_rate["mu"] * 100, "% \n")
-cat("Acceptance rate for phi: ", metro_fl1$accept_rate["phi"] * 100, "% \n")
+In order to reach an acceptance rate as close as possible to 40%, it was necessary to multiply by factors $f_1=f_2=2.75$. The obtained rates, with $M=50000$ iterations are such:  
 
-```
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+mu & phi \\ \midrule
+`r metro_fl1$accept_rate["mu"] * 100`& `r metro_fl1$accept_rate["phi"] * 100`    \\ \bottomrule
+\end{tabular}
+\caption{Acceptance rates for the metropolis algorithm}
+\end{table}
 
 ## (b) diagnostic for convergence
 
@@ -652,7 +651,7 @@ library(plotly)
 den3d <- kde2d(metro_fl.theta[, 1], metro_fl.theta[, 2])
 plot_ly(x = den3d$x, y = den3d$y, z = den3d$z) %>% add_surface()
 ```
-The first, trivial, way of checking if the convergence occurred is looking at the plot of the generated variables:
+The first, trivial, way of checking if the convergence occurred is by a visual analysis of the generated variables. One can look at the traceplot as well as the ACF and PACF. 
 \vspace{-1em}
 ```{r metropolis_traceplot, fig.height=5, out.width="49%", fig.show='hold', appendix=TRUE}
 traceplot(metro_fl1.theta.mcmc)
@@ -662,7 +661,7 @@ By doing so, one sees that the mixing seems pretty good. For example, the autoco
 
 ```{r acf_pacf_function, appendix=TRUE}
 # Plot slightly modified acf and pacf
-plot.acf.pacf <- function(data, lag.max = 50, linked_by_line = T, titles = c("ACF", "PACF"), ...) {
+plot.acf.pacf <- function(data, lag.max = 30, linked_by_line = T, titles = c("ACF", "PACF"), ...) {
 
   ts.acf <- acf(x = data, lag = lag.max, plot = F)
   ts.pacf <- pacf(x = data, lag = lag.max, plot = F)
@@ -682,12 +681,12 @@ plot.acf.pacf <- function(data, lag.max = 50, linked_by_line = T, titles = c("AC
 ```
 
 
-```{r acf_pacf_mu, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
-plot.acf.pacf(metro_fl1.theta[, 1], lag.max = 30)
-plot.acf.pacf(metro_fl1.theta[, 2], lag.max = 30)
+```{r acf_pacf_mu, fig.show="hold", out.width="49%", fig.height=4, fig.width=5.5, appendix=TRUE}
+plot.acf.pacf(metro_fl1.theta[, 1], titles = c("AFC of mu", "PACF of mu"))
+plot.acf.pacf(metro_fl1.theta[, 2], titles = c("AFC of phi", "PACF of phi"))
 
 ```
-Since the chains clearly seem to be generated with respect to an Autoregressive process (see ACF/PACF plots), one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autocorrelation. 
+Since the chains clearly seem to be generated with respect to an Autoregressive process, one can compute effectively the effective sample size. It represents how many samples would be generated if there were no autocorrelation. 
 
 \begin{figure}[h]
 \centering
@@ -699,6 +698,7 @@ effectiveSize(metro_fl1.theta.mcmc)
 
 ```
 \end{BVerbatim}
+\caption*{Effective sample size of Metropolis}
 \end{figure}
 
 ### Gelman-Rubin {-}
@@ -738,10 +738,7 @@ It seems that convergence occurs rather quickly. After a early generations, the 
 \hspace{-3em}
 \begin{BVerbatim}
 ```{r gelman_diag, results='asis', appendix=TRUE}
-
-gelman.diag(list(mcmc(metro_fl1$theta), mcmc(metro_fl2$theta)))$psrf
-
-#gelman.diag(list(head(metro_fl1.theta.mcmc, 1000), head(metro_fl2.theta.mcmc, 1000)))$psrf
+gelman.diag(list(head(metro_fl1.theta.mcmc, 1000), head(metro_fl2.theta.mcmc, 1000)))$psrf
 
 ```
 \end{BVerbatim}
@@ -764,7 +761,7 @@ Accordingly, the convergence seems to occurs after roughly 1000 observations for
 
 The Geweke diagnostic is useful in the sense that it allows for only one chain to be generated. The chain will be separated into two part: the first accounts for the first $10\%$ of the data while the other accounts for the last $50\%$ of the chain. Under the hypothesis of convergence, the mean of both subsets should be similar. Hence, one can construct a corresponding two means test. The Z-scores are given given here below for $\mu$ and $\phi$, respectively:
 
-\vspace{-1em}
+
 \begin{figure}[h]
 \centering
 \hspace{-3em}
@@ -776,20 +773,20 @@ geweke.diag(mcmc((metro_fl1.theta)))
 \end{figure}
 
 To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
-\vspace{-2em}
+
 ```{r geweke_plot, appendix=TRUE, fig.show='hold', fig.height=3.8, out.width="80%"}
 # Z-Score plot
 geweke.plot(metro_fl1.theta.mcmc, nbins = 50)
 
 ```
 
-Except for one in $\phi$, the hypothesis of same mean in never rejected. There is still no proof of non convergence of the generated chains. 
+Except for one value, the hypothesis of same mu and phi are never rejected. There is still no proof of non convergence of the generated chains. 
 
-
+\pagebreak
 ## (c) Credible intervals for $\mu_1$
 
-\begin{note}[TODO]\end{note}
-
+It would be interesting to calculate intervals and compare them to those previously found with the Laplace approximation. Using the same method, here are the results obtained. 
+\vspace{-1em}
 ```{r credible_comparison_plot, appendix=TRUE}
 # Credible intervals of the Metropolis
 QB_ME <- quantile(metro_fl1.theta[, 1], probs = c(alpha / 2, 1 - alpha / 2))
@@ -799,7 +796,7 @@ HPD_ME <- HPDinterval(as.mcmc(metro_fl1.theta[, 1]), prob = 1 - alpha)
 credible_intervals_comparison <- function(alpha) {
   colors <- rainbow(n = 4, alpha = .6)
 
-  densplot(laplace_fl.mcmc[, 1], main = "Laplace approximation for mu in Flanders")
+  densplot(laplace_fl.mcmc[, 1], main = "Intervals comparison for mu in Flanders", xlab="Income", sub = expression(paste(alpha, " = ", 0.05)))
   legend("topright",
     legend = c("Quantiles Laplace", "Quantiles Metropolis", "HPD Laplace", "HPD Metropolis"), col = colors, lty = c(2, 2, 1, 1), cex = .7
   )
@@ -815,10 +812,24 @@ credible_intervals_comparison <- function(alpha) {
 credible_intervals_comparison(.05)
 
 ```
+The intervals being very close to each other, it is difficult to distinguish them visually. Thus, they are shown in the table below.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}c|cc|cc@{}}
+\toprule
+                    & \multicolumn{2}{c|}{\textbf{Quantiles}} & \multicolumn{2}{c}{\textbf{HPD}} \\ \midrule
+\textbf{Laplace}    & `r round(QB_LP[1], 2)` & `r round(QB_LP[2], 2)` & `r round(HPD_LP[1], 2)` & `r round(HPD_LP[2], 2)`             \\
+\textbf{Metropolis} & `r round(QB_ME[1], 2)` & `r round(QB_ME[2], 2)` & `r round(HPD_ME[1], 2)` & `r round(HPD_ME[2], 2)`             \\ \bottomrule
+\end{tabular}
+\caption{Comparison of credible intervals between Laplace and Metropolis}
+\label{credible_intervals_laplace_metropolis}
+\end{table}
+
 
 # Question 6
 
-\begin{note}[TODO]\end{note}
+The use of JAGS is relatively simple. One just have to build a model by providing the likelihood and the statistical distributions so that the program can run and take care of the rest. In accordance with the information given in the previous sections, the model is defined as follows
 
 ```{r jags_model_definition, eval=F, echo=T, appendix=TRUE}
 # JAGS Metropolis Model 
@@ -840,10 +851,14 @@ metro_model <- function() {
   phi ~ dunif(0, 10)
 }
 
+```
+
+```{r jags_model_write, appendix=TRUE, eval=F}
 model.file <- "resources/metropolis.bug"
 write.model(metro_model, model.file)
 
 ```
+
 
 ```{r jags_model_path}
 model.file <- "resources/metropolis.bug"
@@ -866,39 +881,49 @@ out_fl.matrix <- as.matrix(out_fl)
 
 ```
 
+A summary of the results is available in [appendix](#S2).
 
-\begin{figure}[h]
-\hspace{-2.4em}
-\begin{BVerbatim}
-```{r jags_1_summary, results='asis', appendix=TRUE}
-summary(out_fl)
+The graphical elements ([traceplot](#jags-traceplot), [acf](#jags-acfpacf), ..) being very similar, only the comparison between the distributions estimated by the different models is presented. It is indeed also noticeable in the figures below that the estimated distributions are very close, either for mu or for phi. With the only small exception of JAGS, for phi which seems to be slightly lower.  
 
-```
-\end{BVerbatim}
-\end{figure}
+```{r metro_laplace_jags_plot, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
+plot(density(out_fl.matrix[, "mu"]), main = "R-Metropolis, Laplace and JAGS distributions\n for mu in Flanders")
+lines(density(metro_fl1.theta[, 1]), col = "red")
+lines(density(laplace_fl$samples[, 1]), col = "blue")
+legend("topleft", legend=c("R-Metropolis", "Laplace", "JAGS"), col=c(1,2,4), lty=1, cex=.7)
 
-
-```{r jags_1_traceplot, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
-traceplot(out_fl)
-
-```
-
-
-
-```{r, appendix=TRUE}
-plot(density(out_fl.matrix[, "mu"]), main = "Comparison R metropolis, Laplace and JAGS distribution for mu", lty = 2)
-lines(density(metro_fl1.theta[, 1]), col = "red", lty = 2)
-lines(density(laplace_fl$samples[, 1]), col = "blue", lty = 2)
-
-plot(density(out_fl.matrix[, "phi"]), main = "Comparison R metropolis, Laplace and JAGS distribution for phi", lty = 2)
-lines(density(metro_fl1.theta[, 2]), col = "red", lty = 2)
-lines(density(laplace_fl$samples[, 2]), col = "blue", lty = 2)
+plot(density(out_fl.matrix[, "phi"]), main = "R-Metropolis, Laplace and JAGS distributions\n for phi in Flanders")
+lines(density(metro_fl1.theta[, 2]), col = "red")
+lines(density(laplace_fl$samples[, 2]), col = "blue")
+legend("topright", legend=c("R-Metropolis", "Laplace", "JAGS"), col=c(1,2,4), lty=1, cex=.7)
 
 ```
+
+```{r credible_intervals_jags, appendix=TRUE}
+# Credible intervals of JAGS model
+QB_JA <- quantile(out_fl.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
+HPD_JA <- HPDinterval(mcmc(out_fl.matrix[, 1]), prob = 1 - alpha)
+```
+
+Not surprisingly, the intervals obtained via JAGS are very similar to those obtained previously, especially via the Metropolis algorithm in R. (See Table \ref{credible_intervals_laplace_metropolis})
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}c|cc|cc@{}}
+\toprule
+              & \multicolumn{2}{c|}{\textbf{Quantiles}} & \multicolumn{2}{c}{\textbf{HPD}} \\ \midrule
+\textbf{JAGS} & `r round(QB_JA[1], 2)` & `r round(QB_JA[2], 2)` & `r round(HPD_JA[1], 2)` & `r round(HPD_JA[2], 2)`          
+\end{tabular}
+\caption{Credible intervals for the JAGS model}
+\end{table}
+
 
 # Question 7
 
-\begin{note}[TODO]\end{note}
+\begin{note}[TODO]
+  Voilà :)\\
+  Si vous faites cette partie ci je m'occupe de commenter tout le code <3\\
+  Et après on tryhard datamining !
+\end{note}
 
 ```{r jags_model_execution_wallonia, appendix=TRUE}
 
@@ -918,23 +943,6 @@ out_wal.matrix <- as.matrix(out_wal)
 
 ```
 
-\begin{figure}[h]
-\centering
-\begin{BVerbatim}
-```{r jags_2_summary, results='asis', appendix=TRUE}
-summary(out_wal)
-
-```
-\end{BVerbatim}
-\end{figure}
-
-
-```{r jags_2_traceplot, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
-traceplot(out_wal)
-
-```
-
-
 # Question 8
 
 The ultimate goal of this work is comparing the households income divergence between Flanders and Wallonia given some a priori and after a experimental study through $1228$ Belgian households. To do so, $50000$ samples have been generated through the metropolis algorithm for Flanders and its French-talking counterpart. Their estimated density is jointly represented here below:
@@ -942,7 +950,7 @@ The ultimate goal of this work is comparing the households income divergence bet
 ```{r region_comparison_plot, appendix=TRUE}
 # Compare the income between region
 plot(density(out_fl.matrix[, "mu"]),
-  main = "Comparison between Flanders and Wallonia Net Income households",
+  main = "Comparison between Flanders and Wallonia\n Net Income households",
   lty = 1, xlim = c(2800, 3500), xlab = "Net Income household (euro)", col = 2, lwd = 2
 )
 legend("topleft", legend = c("Flanders", "Wallonia"), col = c(2, 4), lwd = 2, lty = 1)
@@ -956,11 +964,12 @@ There is a `r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)`€ dif
 diff_of_mu <- out_fl.matrix[, 1] - out_wal.matrix[, 1]
 plot(density(diff_of_mu),
   main = "Difference of Net Income between Flanders and Wallonia",
-  xlab = expression(paste(hat(mu)[1], "-", hat(mu)[2])), cex.main = 0.9, lwd = 2
+  xlab = expression(paste(hat(mu)[1], "-", hat(mu)[2])), cex.main = 0.9, lwd = 2,
+  sub = expression(paste(alpha, "=", 0.05))
 )
-legend("topleft", legend = c("95% Quantile-based intervals", "95% HPD intervals"), col = c("red", "blue"), lty = 2:3, cex = 0.7, lwd = 3)
+legend("topleft", legend = c("Quantiles intervals", "HPD intervals"), col = c("red", "blue"), lty = 2, cex = 0.7, lwd = 2)
 abline(v = quantile(diff_of_mu, probs = c(0.025, 0.975)), col = "red", lty = 2, lwd = 3)
-abline(v = HPDinterval(as.mcmc(diff_of_mu)), col = "blue", lty = 3, lwd = 3)
+abline(v = HPDinterval(as.mcmc(diff_of_mu)), col = "blue", lty = 2, lwd = 2)
 
 ```
 On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the income is different from one another. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
@@ -970,12 +979,50 @@ On a $95\%$ confidence level, it is impossible to conclude that the average hous
 \appendix
 
 # Appendix{#appendix}
-## Figures{#figures}
 
 ```{r, appendix=TRUE}
 # ============ APPENDIX =========== #
 ```
 
+## Output
+
+### Summary of the Laplace approximation for Flanders{#S1}
+
+\begin{figure}[h]
+\hspace{-2.5em}
+\begin{BVerbatim}
+```{r laplace_summary, results='asis', appendix=TRUE}
+summary(laplace_fl.mcmc)
+
+```
+\end{BVerbatim}
+\end{figure}
+
+### Summary of the JAGS model for Flanders{#S2}
+
+\begin{figure}[h]
+\hspace{-2.4em}
+\begin{BVerbatim}
+```{r jags_1_summary, results='asis', appendix=TRUE}
+summary(out_fl)
+
+```
+\end{BVerbatim}
+\end{figure}
+
+### Summary of the JAGS model for Flanders{#S3}
+
+\begin{figure}[h]
+\hspace{-2.4em}
+\begin{BVerbatim}
+```{r jags_2_summary, results='asis', appendix=TRUE}
+summary(out_wal)
+
+```
+\end{BVerbatim}
+\end{figure}
+
+## Figures{#figures}
 
 ### Laplace approximation density plots
 
@@ -992,7 +1039,7 @@ plot(density(laplace_fl$samples[, 2]),
 ### Laplace approximation contour plot
 
 \vspace{-2em}
-```{r credible_contour_plot}
+```{r credible_contour_plot, fig.height=4, appendix=TRUE}
 # Contour plot of the Laplace approximation
 (function() {
   lvls <- c(0.01, 0.25, 0.5, 0.75, 0.9)
@@ -1021,10 +1068,39 @@ plot(density(laplace_fl$samples[, 2]),
 
 ### Metropolis mu vs phi
 \vspace{-2em}
-```{r plot_metropolis_1_mu_phi, appendix=TRUE}
+```{r plot_metropolis_1_mu_phi, fig.height=4, appendix=TRUE}
 plot(metro_fl1.theta[, 1], metro_fl1.theta[, 2], xlab = "mu", ylab = "phi", col = rgb(0, 0, 0, .5))
 
 ```
+
+### JAGS traceplot for Flanders
+```{r jags_traceplot_fl, fig.height=5, out.width="49%", fig.show='hold', appendix=TRUE}
+traceplot(out_fl)
+
+```
+
+### JAGS ACF/PACF for Flanders
+
+```{r acf_pacf_mu_jags_fl, fig.show="hold", out.width="49%", fig.height=4, fig.width=5.5, appendix=TRUE}
+plot.acf.pacf(out_fl.matrix[, 1], titles = c("AFC of mu", "PACF of mu"))
+plot.acf.pacf(out_fl.matrix[, 2], titles = c("AFC of phi", "PACF of phi"))
+
+```
+
+### JAGS traceplot for Wallonia
+```{r jags_traceplot_wal, fig.height=5, out.width="49%", fig.show='hold', appendix=TRUE}
+traceplot(out_wal)
+
+```
+
+### JAGS ACF/PACF for Wallonia
+
+```{r acf_pacf_mu_jags_wal, fig.show="hold", out.width="49%", fig.height=4, fig.width=5.5, appendix=TRUE}
+plot.acf.pacf(out_wal.matrix[, 1], titles = c("AFC of mu", "PACF of mu"))
+plot.acf.pacf(out_wal.matrix[, 2], titles = c("AFC of phi", "PACF of phi"))
+
+```
+
 
 ## Code{#code}
 
