@@ -243,7 +243,7 @@ resulting in the following density $f(x)$
   f(x_k) = \frac{(\phi_k\mu_k)^{-1/\phi_k}}{\Gamma(\phi_k^{-1})} x_k^{1/\phi_k-1}         \exp{(\frac{-x_k}{\phi_k \mu_k})}
 \end{align}
     
-and the cumulative distribution function is such as 
+The associated cumulative distribution function (CDF) is: 
 \begin{align}
   F(x) = \int_0^x f(u)\ \diff{u} = \frac{\gamma(\phi^{-1}, \frac{x}{\phi\mu})}{\Gamma(\phi^{-1})}
 \end{align}
@@ -262,7 +262,7 @@ Then, the probability to fall into a certain HNI interval \(I\), for each region
     
 Using CDF writing , the probability can be proposed as a difference of CDF :
 
-\begin{equation} 
+\begin{equation*} 
     p_j =
     \left\{
     \begin{array}{lcl}
@@ -271,8 +271,7 @@ Using CDF writing , the probability can be proposed as a difference of CDF :
      1 - F(x_{j}) & \text{if} & j = 10\\
     \end{array}
     \right.
-    \label{eq:prob_diff_cdf}
-\end{equation}
+\end{equation*}
     
 \vspace{+1.5em}
 \begin{equation} 
@@ -338,7 +337,8 @@ sigma_prior <- 306.12
 
 ## Prior for the mean
 
-The average net monthly household income, regardless the region, is believed to be within the interval (2400, 3600) on a 95\% confidence level. A convenient probability function that translates this belief is the Gaussian distribution with a mean at the center and standard deviation such that its $95\%$ confidence interval corresponds to the mentioned bonds. This belief is confirmed by Monte Carlo simulations. Indeed, if one generates a large amount of gamma distributed samples and repeatedly take its mean, one can determine a density estimate for the mean. An example is shown below, using the data from Flanders. The estimated density and the estimated normal density are very similar.
+The average net monthly household income, regardless the region, is believed to be within the interval (2400, 3600) on a 95\% confidence level. A convenient probability function that translates this belief is the Gaussian distribution with a mean at the center and standard deviation such that its $95\%$ confidence interval corresponds to the mentioned bonds. This belief is confirmed by Monte Carlo simulations. Indeed, if one generates a large amount of gamma distributed samples and repeatedly take its mean, one can determine a density estimate for the mean. An example is shown below, using the data from Flanders. The estimated density and the estimated normal density are very similar. 
+
 
 \vspace{-2em}
 ```{r plot_prior_mean, appendix=TRUE}
@@ -642,7 +642,7 @@ mu & phi \\ \midrule
 
 ## (b) diagnostic for convergence
 
-### Graphs analysis {-}
+### Global analysis {-}
 
 ```{r, eval = F}
 # 3D plot (html)
@@ -698,7 +698,7 @@ effectiveSize(metro_fl1.theta.mcmc)
 
 ```
 \end{BVerbatim}
-\caption*{Effective sample size of Metropolis}
+\caption*{Effective sample size of Metropolis in Flanders}
 \end{figure}
 
 ### Gelman-Rubin {-}
@@ -722,7 +722,7 @@ metro_fl2.theta.mcmc <- as.mcmc(metro_fl2.theta)
 
 ```
 
-```{r traceplot_both_metro, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
+```{r traceplot_both_metro_wal, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
 # Traceplot of the two metropolis, comparison
 traceplot(list(
   head(as.mcmc(metro_fl1$theta), 1000),
@@ -771,6 +771,9 @@ geweke.diag(mcmc((metro_fl1.theta)))
 ```
 \end{BVerbatim}
 \end{figure}
+
+Accordingly, one cannot reject the null hypàothesis of same average parameters value on a 95\% confidence level. 
+\newline
 
 To strengthen the belief of convergence, one can successively discard larger numbers of iterations from the beginning of the chain. From there, the z-score is successively computed and presented here below:
 
@@ -829,7 +832,8 @@ The intervals being very close to each other, it is difficult to distinguish the
 
 # Question 6
 
-The use of JAGS is relatively simple. One just have to build a model by providing the likelihood and the statistical distributions so that the program can run and take care of the rest. In accordance with the information given in the previous sections, the model is defined as follows
+JAGS allows to generate samples from a joint posterior by providing the distributions of the members of this element: first the likelihood and then the conjugate prior. The former is a multinomial distribution where the probability vector is composed of a difference of gamma CDFs. The latter is composed of a normal distribution (mean 3000 and standard deviation 306.12) for the $\mu_k$ and a uniform distribution (with bonds from $0$ to $10$) for coefficient of dispersion $\phi_k$.
+Those have been defined earlier and are proposed here below:
 
 ```{r jags_model_definition, eval=F, echo=T, appendix=TRUE}
 # JAGS Metropolis Model 
@@ -847,16 +851,14 @@ metro_model <- function() {
   y ~ dmulti(pi, n)
 
   # Priors
-  mu ~ dnorm(3000, pow(306.12, -2))
+  mu ~ dnorm(3000, pow(306.12, -2)) # JAGS syntax: 2nd term is precision, which is 1/sd^2
   phi ~ dunif(0, 10)
 }
-
 ```
 
 ```{r jags_model_write, appendix=TRUE, eval=F}
 model.file <- "resources/metropolis.bug"
 write.model(metro_model, model.file)
-
 ```
 
 
@@ -919,15 +921,11 @@ Not surprisingly, the intervals obtained via JAGS are very similar to those obta
 
 # Question 7
 
-\begin{note}[TODO]
-  Voilà :)\\
-  Si vous faites cette partie ci je m'occupe de commenter tout le code <3\\
-  Et après on tryhard datamining !
-\end{note}
-
+## The Metropolis algorithm
+The model is exactly the same as in Flanders since the the proposed (log-)posterior distribution is the same and the prior parameters is also proposed to be the same. 
+Then, one needs to fill in the data specific to Wallonia observations from the study and its starting values. Those are proposed to be the MLE's of $\mu_2$ and $\phi_2$ (3043 and 0.243, respectively).
 ```{r jags_model_execution_wallonia, appendix=TRUE}
 
-# Test with Wallonia
 jags_wal <- jags.model(
   file = model.file,
   inits = list(list(mu = estim_mu_wal, phi = estim_phi_wal)),
@@ -938,10 +936,159 @@ jags_wal <- jags.model(
 
 update(jags_wal, 1000)
 
-out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000)
+out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000) # want same chain length as in metropolis Flanders
 out_wal.matrix <- as.matrix(out_wal)
 
 ```
+
+## Convergence study 
+
+### Global analysis  {-}
+
+There is no reason to believe the conclusions regarding the convergence would be different from Flanders. Let's first see the traceplot:
+
+```{r wallonia_metropolis_traceplot, fig.height=5, out.width="49%", fig.show='hold', appendix=TRUE}
+traceplot(out_wal)
+```
+Similarly to Flanders, it does not seem that the mean and variance change over the iterations. Moreover, as it can be shown in the ACFs/PACFs below, the autocorrelation is weaker.
+
+```{r wallonia_acf_pacf, fig.show="hold", out.width="49%", fig.height=4, fig.width=5.5, appendix=TRUE}
+plot.acf.pacf(out_wal.matrix[, 1], titles = c("AFC of mu for Wallonia", "PACF of mu for Wallonia"))
+plot.acf.pacf(out_wal.matrix[, 2], titles = c("AFC of phi for Wallonia", "PACF of phi for Wallonia"))
+```
+
+This results in a larger effective sample size, which is good news for convergence assessment. In terms of proportions, it is almost trice bigger. See table below for exact size: 
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r effective_size_metro_out_wal, results='asis', appendix=TRUE}
+# out of 50 000 observations
+effectiveSize(out_wal)
+```
+\end{BVerbatim}
+\caption*{Effective sample size of Metropolis in Wallonia}
+\end{figure}
+
+
+### Gelman-Rubin {-}
+
+The two proposed starting values for $\mu_2$ and $\phi_2$ are the same as in Flanders section : $4000$ for $\mu_1$ and $0.1$ for $\phi_1$. After having run the second chain, the traceplot of both chain is plotted with respect to the first 1000 generations after the burn-in.
+
+```{r jags_model2_execution_wallonia, appendix=TRUE}
+
+jags_wal2 <- jags.model(
+  file = model.file,
+  inits = list(list(mu = 4000, phi = 0.1)),
+  data = list(n = 425, intervals = intervals, y = wallonia),
+  n.chains = 1,
+  quiet = T
+)
+
+update(jags_wal2, 1000)
+
+out_wal2 <- coda.samples(model = jags_wal2, c("mu", "phi"), n.iter = 45000) # want same chain length as in metropolis Flanders
+out_wal2.matrix <- as.matrix(out_wal2)
+
+```
+
+```{r traceplot_both_metro, fig.show="hold", out.width="49%", fig.width=5.5, appendix=TRUE}
+# Traceplot of the two metropolis, comparison
+traceplot(list(
+  head(as.mcmc(out_wal.matrix), 1000),
+  head(as.mcmc(out_wal2.matrix), 1000)
+))
+
+```
+
+The shapes of chains remain very similar, indicating convergence. Moreover, the Gelman-rubin statistic upper bond CI is clearly below the 1.1 objective. 
+
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r gelman_diag_wallonia, results='asis', appendix=TRUE}
+gelman.diag(list(head(as.mcmc(out_wal.matrix), 1000), head(as.mcmc(out_wal2.matrix), 1000)))$psrf
+
+```
+\end{BVerbatim}
+\end{figure}
+
+
+Applying the statistic with respect to the number of generations, the convergence seems to occur earlier, after less than 1000 chain length
+\vspace{-1em}
+```{r gelman_plot_wal, appendix=TRUE, fig.height=3.8, out.width="80%"}
+gelman.plot(list(
+  head(as.mcmc(out_wal.matrix), 2000),
+  head(as.mcmc(out_wal2.matrix), 2000)
+))
+
+```
+
+
+### Geweke diagnostic {-}
+
+The Z-scores are given given here below for $\mu_2$ and $\phi_2$
+
+\begin{figure}[h]
+\centering
+\hspace{-3em}
+\begin{BVerbatim}
+```{r geweke_diag_wal, results='asis'}
+geweke.diag(out_wal)
+```
+\end{BVerbatim}
+\end{figure}
+Once again, one cannot reject the hypothesis of same average values although the Z-score are higher this time. 
+
+If one plots the Z-score successively with repect to the number of iterations, this gives:
+
+```{r geweke_plot_wal, appendix=TRUE, fig.show='hold', fig.height=3.8, out.width="80%"}
+# Z-Score plot
+geweke.plot(out_wal, nbins = 50)
+```
+
+There are a bit more rejected hypotheses but this is not alarming. 
+
+
+
+## (c) Credible intervals for $\mu_2$
+
+ 
+\vspace{-1em}
+```{r credible_intervals_wal, appendix=TRUE}
+# Credible intervals of the Metropolis
+QB_ME_WAL <- quantile(out_wal.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
+HPD_ME_WAL <- HPDinterval(out_wal[,1], prob = 1 - alpha)
+
+densplot(out_wal[,1], main = "Estimated density of mu in Wallonia", xlab="Income",
+         lwd=2, sub = expression(paste(alpha, " = ", 0.05)))
+legend("topleft", legend= c("Quantiles Interval", "HPD interval"), cex = 0.8,
+       col = c('red', 'blue'), lwd=2, lty = 2)
+
+abline(v=QB_ME_WAL, col='red', lty=2, lwd=2)
+abline(v=unlist(HPD_ME_WAL), col='blue', lty=2, lwd=2)
+```
+The density is again rather symmetric but centered on a smaller value (```r round(mean(out_wal.matrix[,1]),1)```). The exact values for the intervals in given below:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}c|cc|cc@{}}
+\toprule
+                    & \multicolumn{2}{c|}{\textbf{Quantiles}} & \multicolumn{2}{c}{\textbf{HPD}} \\ \midrule
+\textbf{Metropolis} & `r round(QB_ME_WAL[1], 2)` & `r round(QB_ME_WAL[2], 2)` & `r round(unlist(HPD_ME_WAL)[1], 2)` & `r round(unlist(HPD_ME_WAL)[2], 2)`             \\ \bottomrule
+\end{tabular}
+\caption{Comparison of credible intervals in Wallonia}
+\label{credible_intervals_wallonia}
+\end{table}
+
+
+The detailed comparison is terms of values is detailed in te next question.
+
+
+
+\newpage
+
 
 # Question 8
 
@@ -972,7 +1119,7 @@ abline(v = quantile(diff_of_mu, probs = c(0.025, 0.975)), col = "red", lty = 2, 
 abline(v = HPDinterval(as.mcmc(diff_of_mu)), col = "blue", lty = 2, lwd = 2)
 
 ```
-On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the income is different from one another. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
+On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be up to  ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the Flemish income is higher than in Wallonia. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
 
 <!------>
 \newpage
