@@ -81,7 +81,6 @@ if (!require(EnvStats)) {install.packages("EnvStats");require(EnvStats)}
 if (!require(R2WinBUGS)) {install.packages("R2WinBUGS");require(R2WinBUGS)}
 if (!require(coda)) {install.packages("coda");require(coda)}
 if (!require(rjags)) {install.packages("rjags");require(rjags)}
-if (!require(latex2exp)) {install.packages("latex2exp");require(latex2exp)}
 
 ```
 
@@ -439,7 +438,7 @@ lpost <- function(theta, freq) {
     freq[j] * log(pgammadiff(low = intervals[j], high = intervals[j + 1], kappa, lambda))
   }))
 
-  # Log posterior
+  # Log posterior: LL + priors
   lpi <- dnorm(theta[1], mu_prior, sigma_prior, log = T) + dunif(theta[2], 0, 10, log = T)
   lpost <- LL + lpi
 
@@ -478,9 +477,7 @@ with $\mathcal{I}(\tilde{\theta})$ the opposite of the hessian matrix (i.e. the 
 In this case, the optimization is done numerically, using starting values close the MLE's. Once done, 50000 bivariate Gaussian observations are generated. 
 
 ```{r laplace_approx, echo=T, appendix=TRUE}
-# Starting values
-inits <- c(mu = mu_prior, phi = 0.01)
-# Laplace approximation
+inits <- c(mu = mu_prior, phi = 0.01) # Starting values
 laplace_approx <- function(inits, frequencies) {
   fit <- optim(inits, lpost, control = list(fnscale = -1), hessian = T, freq = frequencies)
   params <- fit$par
@@ -564,25 +561,30 @@ Which, in R gives the following code:
 ```{r metropolis_algorithm, echo=T, appendix=TRUE}
 # Metropolis algorithm, mu and phi updated one at the time
 metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies) {
+  # Make sure args are vectors
   theta <- as.vector(theta)
   sd.propositions <- as.vector(sd.propositions)
   factors <- as.vector(factors)
   frequencies <- as.vector(frequencies)
-
+  
+  # Init an array of dim (M, 2) with theta as first elem
   thetas <- array(dim = c(M + 1, 2))
   thetas[1, ] <- theta
-
+  
   accepted <- c(0, 0)
-
-  sigma_mu <- factors[2] * sd.propositions[1]
+  
+  # variance adjustment via a factor
+  sigma_mu <- factors[1] * sd.propositions[1]
   sigma_phi <- factors[2] * sd.propositions[2]
-
+  
   for (i in 2:(M + 1)) {
+    # Retrieve the previous value
     theta_mu <- theta_phi <- this_theta <- thetas[i - 1, ]
-
+    
+    # Proposition of mu and phi, "independently"
     theta_mu[1] <- this_theta[1] + rnorm(1, 0, sigma_mu)
     theta_phi[2] <- this_theta[2] + rnorm(1, 0, sigma_phi)
-
+    
     thresholds <- c(
       min(exp(lpost(theta_mu, frequencies) - lpost(this_theta, frequencies)), 1),
       min(exp(lpost(theta_phi, frequencies) - lpost(this_theta, frequencies)), 1)
@@ -590,16 +592,21 @@ metropolis_algorithm <- function(M, theta, sd.propositions, factors, frequencies
     
     accepts <- runif(2) <= thresholds
     
+    # Update if accepted, otherwise use the previous values
     thetas[i, ] <- this_theta
     if (accepts[1]) thetas[i, 1] <- theta_mu[1]
     if (accepts[2]) thetas[i, 2] <- theta_phi[2]
     accepted <- accepted + as.integer(accepts)
   }
-
+  
+  # We decided to do the burnin outside
   colnames(thetas) <- c("mu", "phi")
   names(accepted) <- c("mu", "phi")
   return(list(theta = thetas, accept_rate = accepted / M))
 }
+```
+
+```{r metropolis_1, appendix=TRUE}
 
 burnin <- function(array, percent) {
   tail(array, -percent * nrow(array))
@@ -608,9 +615,6 @@ burnin <- function(array, percent) {
 sd_hat_mu <- sqrt(laplace_fl$cov[1, 1])
 sd_hat_phi <- sqrt(laplace_fl$cov[2, 2])
 
-```
-
-```{r metropolis_1, appendix=TRUE}
 # Run the algorithm
 metro_fl1 <- metropolis_algorithm(5e4,
   theta = c(mu = estim_mu_fl, phi = estim_phi_fl),
@@ -783,7 +787,7 @@ geweke.plot(metro_fl1.theta.mcmc, nbins = 50)
 
 ```
 
-Except for one value, the hypothesis of same mu and phi are never rejected. There is still no proof of non convergence of the generated chains. 
+Except for some values, the hypothesis of same mu and phi are not rejected. There is still no proof of non convergence of the generated chains. 
 
 \pagebreak
 ## (c) Credible intervals for $\mu_1$
@@ -851,7 +855,7 @@ metro_model <- function() {
   y ~ dmulti(pi, n)
 
   # Priors
-  mu ~ dnorm(3000, pow(306.12, -2)) # JAGS syntax: 2nd term is precision, which is 1/sd^2
+  mu ~ dnorm(3000, pow(306.12, -2)) # 2nd term is precision, 1/sd^2
   phi ~ dunif(0, 10)
 }
 ```
@@ -871,7 +875,7 @@ model.file <- "resources/metropolis.bug"
 jags_fl <- jags.model(
   file = model.file,
   inits = list(list(mu = estim_mu_fl, phi = estim_phi_fl)),
-  data = list(n = 803, intervals = intervals, y = flanders),
+  data = list(n = flanders.n, intervals = intervals, y = flanders),
   n.chains = 1,
   quiet = T
 )
@@ -902,8 +906,9 @@ legend("topright", legend=c("R-Metropolis", "Laplace", "JAGS"), col=c(1,2,4), lt
 
 ```{r credible_intervals_jags, appendix=TRUE}
 # Credible intervals of JAGS model
-QB_JA <- quantile(out_fl.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
-HPD_JA <- HPDinterval(mcmc(out_fl.matrix[, 1]), prob = 1 - alpha)
+QB_JA_FL <- quantile(out_fl.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
+HPD_JA_FL <- HPDinterval(mcmc(out_fl.matrix[, 1]), prob = 1 - alpha)
+
 ```
 
 Not surprisingly, the intervals obtained via JAGS are very similar to those obtained previously, especially via the Metropolis algorithm in R. (See Table \ref{credible_intervals_laplace_metropolis})
@@ -913,7 +918,7 @@ Not surprisingly, the intervals obtained via JAGS are very similar to those obta
 \begin{tabular}{@{}c|cc|cc@{}}
 \toprule
               & \multicolumn{2}{c|}{\textbf{Quantiles}} & \multicolumn{2}{c}{\textbf{HPD}} \\ \midrule
-\textbf{JAGS} & `r round(QB_JA[1], 2)` & `r round(QB_JA[2], 2)` & `r round(HPD_JA[1], 2)` & `r round(HPD_JA[2], 2)`          
+\textbf{JAGS} & `r round(QB_JA_FL[1], 2)` & `r round(QB_JA_FL[2], 2)` & `r round(HPD_JA_FL[1], 2)` & `r round(HPD_JA_FL[2], 2)`          
 \end{tabular}
 \caption{Credible intervals for the JAGS model}
 \end{table}
@@ -929,14 +934,14 @@ Then, one needs to fill in the data specific to Wallonia observations from the s
 jags_wal <- jags.model(
   file = model.file,
   inits = list(list(mu = estim_mu_wal, phi = estim_phi_wal)),
-  data = list(n = 425, intervals = intervals, y = wallonia),
+  data = list(n = wallonia.n, intervals = intervals, y = wallonia),
   n.chains = 1,
   quiet = T
 )
 
 update(jags_wal, 1000)
 
-out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000) # want same chain length as in metropolis Flanders
+out_wal <- coda.samples(model = jags_wal, c("mu", "phi"), n.iter = 50000)
 out_wal.matrix <- as.matrix(out_wal)
 
 ```
@@ -955,6 +960,7 @@ Similarly to Flanders, it does not seem that the mean and variance change over t
 ```{r wallonia_acf_pacf, fig.show="hold", out.width="49%", fig.height=4, fig.width=5.5, appendix=TRUE}
 plot.acf.pacf(out_wal.matrix[, 1], titles = c("AFC of mu for Wallonia", "PACF of mu for Wallonia"))
 plot.acf.pacf(out_wal.matrix[, 2], titles = c("AFC of phi for Wallonia", "PACF of phi for Wallonia"))
+
 ```
 
 This results in a larger effective sample size, which is good news for convergence assessment. In terms of proportions, it is almost trice bigger. See table below for exact size: 
@@ -963,8 +969,8 @@ This results in a larger effective sample size, which is good news for convergen
 \hspace{-3em}
 \begin{BVerbatim}
 ```{r effective_size_metro_out_wal, results='asis', appendix=TRUE}
-# out of 50 000 observations
 effectiveSize(out_wal)
+
 ```
 \end{BVerbatim}
 \caption*{Effective sample size of Metropolis in Wallonia}
@@ -987,7 +993,7 @@ jags_wal2 <- jags.model(
 
 update(jags_wal2, 1000)
 
-out_wal2 <- coda.samples(model = jags_wal2, c("mu", "phi"), n.iter = 45000) # want same chain length as in metropolis Flanders
+out_wal2 <- coda.samples(model = jags_wal2, c("mu", "phi"), n.iter = 45000)
 out_wal2.matrix <- as.matrix(out_wal2)
 
 ```
@@ -1035,7 +1041,8 @@ The Z-scores are given given here below for $\mu_2$ and $\phi_2$
 \hspace{-3em}
 \begin{BVerbatim}
 ```{r geweke_diag_wal, results='asis'}
-geweke.diag(out_wal)
+geweke.diag(out_wal.matrix)
+
 ```
 \end{BVerbatim}
 \end{figure}
@@ -1046,6 +1053,7 @@ If one plots the Z-score successively with repect to the number of iterations, t
 ```{r geweke_plot_wal, appendix=TRUE, fig.show='hold', fig.height=3.8, out.width="80%"}
 # Z-Score plot
 geweke.plot(out_wal, nbins = 50)
+
 ```
 
 There are a bit more rejected hypotheses but this is not alarming. 
@@ -1058,32 +1066,33 @@ There are a bit more rejected hypotheses but this is not alarming.
 \vspace{-1em}
 ```{r credible_intervals_wal, appendix=TRUE}
 # Credible intervals of the Metropolis
-QB_ME_WAL <- quantile(out_wal.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
-HPD_ME_WAL <- HPDinterval(out_wal[,1], prob = 1 - alpha)
+QB_JA_WAL <- quantile(out_wal.matrix[, 1], probs = c(alpha / 2, 1 - alpha / 2))
+HPD_JA_WAL <- HPDinterval(out_wal[,1], prob = 1 - alpha)
 
 densplot(out_wal[,1], main = "Estimated density of mu in Wallonia", xlab="Income",
          lwd=2, sub = expression(paste(alpha, " = ", 0.05)))
 legend("topleft", legend= c("Quantiles Interval", "HPD interval"), cex = 0.8,
        col = c('red', 'blue'), lwd=2, lty = 2)
 
-abline(v=QB_ME_WAL, col='red', lty=2, lwd=2)
-abline(v=unlist(HPD_ME_WAL), col='blue', lty=2, lwd=2)
+abline(v=QB_JA_WAL, col='red', lty=2, lwd=2)
+abline(v=unlist(HPD_JA_WAL), col='blue', lty=2, lwd=2)
+
 ```
-The density is again rather symmetric but centered on a smaller value (```r round(mean(out_wal.matrix[,1]),1)```). The exact values for the intervals in given below:
+The density is again rather symmetric but centered on a smaller value (```r round(mean(out_wal.matrix[,1]),1)```). The exact values for the intervals are given below:
 
 \begin{table}[h]
 \centering
 \begin{tabular}{@{}c|cc|cc@{}}
 \toprule
                     & \multicolumn{2}{c|}{\textbf{Quantiles}} & \multicolumn{2}{c}{\textbf{HPD}} \\ \midrule
-\textbf{Metropolis} & `r round(QB_ME_WAL[1], 2)` & `r round(QB_ME_WAL[2], 2)` & `r round(unlist(HPD_ME_WAL)[1], 2)` & `r round(unlist(HPD_ME_WAL)[2], 2)`             \\ \bottomrule
+\textbf{Metropolis} & `r round(QB_JA_WAL[1], 2)` & `r round(QB_JA_WAL[2], 2)` & `r round(unlist(HPD_JA_WAL)[1], 2)` & `r round(unlist(HPD_JA_WAL)[2], 2)`             \\ \bottomrule
 \end{tabular}
 \caption{Comparison of credible intervals in Wallonia}
 \label{credible_intervals_wallonia}
 \end{table}
 
 
-The detailed comparison is terms of values is detailed in te next question.
+The detailed comparison is terms of values is presented on the next question.
 
 
 
@@ -1109,14 +1118,17 @@ There is a `r round( mean(out_fl.matrix[,"mu"]-out_wal.matrix[,"mu"]),2)`€ dif
 ```{r credible_intervals_difference_region, appendix=TRUE}
 # Credible intervals of the difference
 diff_of_mu <- out_fl.matrix[, 1] - out_wal.matrix[, 1]
+QB_DIFF <- quantile(diff_of_mu, probs = c(alpha / 2, 1 - alpha / 2))
+HPD_DIFF <- HPDinterval(as.mcmc(diff_of_mu), prob = 1 - alpha)
+
 plot(density(diff_of_mu),
   main = "Difference of Net Income between Flanders and Wallonia",
   xlab = expression(paste(hat(mu)[1], "-", hat(mu)[2])), cex.main = 0.9, lwd = 2,
   sub = expression(paste(alpha, "=", 0.05))
 )
 legend("topleft", legend = c("Quantiles intervals", "HPD intervals"), col = c("red", "blue"), lty = 2, cex = 0.7, lwd = 2)
-abline(v = quantile(diff_of_mu, probs = c(0.025, 0.975)), col = "red", lty = 2, lwd = 3)
-abline(v = HPDinterval(as.mcmc(diff_of_mu)), col = "blue", lty = 2, lwd = 2)
+abline(v = QB_DIFF, col = "red", lty = 2, lwd = 3)
+abline(v = HPD_DIFF, col = "blue", lty = 2, lwd = 2)
 
 ```
 On a $95\%$ confidence level, it is impossible to conclude that the average household income level is significantly different between the regions. According to this Bayesian approach, one can only be up to  ```r round((1-ecdf(diff_of_mu)(0)*2)*100 ,2)``` \% sure that the Flemish income is higher than in Wallonia. This is computed by looking from which confidence level one can reject the null hypothesis of same average income.
@@ -1129,6 +1141,7 @@ On a $95\%$ confidence level, it is impossible to conclude that the average hous
 
 ```{r, appendix=TRUE}
 # ============ APPENDIX =========== #
+
 ```
 
 ## Output
@@ -1213,6 +1226,7 @@ plot(density(laplace_fl$samples[, 2]),
     labels = (1 - lvls), col = "red", method = "edge"
   )
 })()
+
 ```
 
 ### Metropolis mu vs phi
